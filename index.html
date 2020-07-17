@@ -1,0 +1,60 @@
+<html xmlns:v="urn:schemas-microsoft-com:vml"
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
+xmlns="http://www.w3.org/TR/REC-html40">
+
+<head>
+</head>
+
+<body lang=EN-US link=blue vlink=purple style='tab-interval:.5in'>
+<div class=WordSection1>
+<h1 align="center">Scalable Numerical Queries by Algebraic Inequality
+Transformations</h1>
+
+<p class=author align="center">Thanh Truong, Tore Risch</p>
+<p class=Affiliation align="center"><span style='font-size:9.0pt;mso-bidi-font-size:
+10.0pt;mso-ansi-language:EN-US;mso-fareast-language:DE;font-style:normal'>Department
+of Information Technology, Uppsala University</span><span lang=EN-GB><br
+clear=all>
+</span><span lang=EN-GB style='letter-spacing:-.1pt;mso-ansi-language:EN-US'><span
+style='mso-spacerun:yes'> </span></span><span style='font-size:9.0pt;
+mso-bidi-font-size:10.0pt;mso-ansi-language:EN-US;mso-fareast-language:DE;
+font-style:normal'>Box 337, SE-751 05, Sweden</span><span style='mso-ansi-language:
+EN-US'><o:p></o:p></span></p>
+
+<p class=Email1 align="center">
+ <span class=e-mail>thanh.truong@it.uu.se<o:p></o:p></span> <br>
+ <span class=e-mail>tore.risch@it.uu.se<o:p></o:p></span></p>
+
+<h3 style="italic">Abstract </h3>
+<p align="justify" class=abstract style='text-indent:0in;line-height:150%'>
+
+To enable historical analyses of logged data streams by SQL queries, the Stream Log Analysis System
+(SLAS) bulk loads data streams derived from sensor readings into a relational database system. Queries over such log data often involve complex numerical
+conditions containing inequalities, e.g. to find suspected deviations from normal behavior based on some function over measured sensor values.
+However, such SQL queries are often slow to execute, because the query optimizer of the DBMS is unable to utilize ordered indexed
+attributes inside numerical conditions. In order to speed up those queries they often need to be reformulated to utilize available indexes. In SLAS the query transformation
+algorithm AQIT (Algebraic Query Inequality Transformation) automatically transforms SQL queries involving a class of algebraic
+inequalities into more scalable SQL queries utilizing ordered indexes. The experimental results show that the queries execute 
+substantially faster by the DBMS when AQIT has been applied to pre-process historical queries involving typical numerical
+expressions to analyze logged data streams.</p>
+
+<h4 style="italic">Full paper <a href="index_files/AQIT_Dasfaa2014.pdf">[PDF]</a> <br></h4> 
+<h4> Full Pseduo Code          <a href="index_files/AQIT_PseudoCode.pdf">[PDF]</a> <br></h4> 
+<h4> Full Benchmark Queries    <a href="index_files/Benchmark_Queries.pdf">[PDF]</a> <br> </h4>
+<h4 style="italic">Poster <a href="index_files/AQIT_Poster.pdf">[PDF]</a> <br></h4>
+<div align="center">
+
+  <object data="index_files/AQIT_Poster.pdf" type="application/pdf" width="640" height="790">
+    <embed src="index_files/AQIT_Poster.pdf" type="application/pdf" />
+  </object>
+</div>
+ <h5>
+  <ul>
+
+  </ul>
+ </h5>
+</div>
+</body>
+</html>

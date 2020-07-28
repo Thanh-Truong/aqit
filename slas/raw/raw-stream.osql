@@ -1,0 +1,87 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: AMOSQL,v $
+ * $Revision: 1.1 $ $Date: 2006/02/12 20:01:08 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Stream from raw binary file
+ *
+ ****************************************************************************
+ * $Log: AMOSQL,v $
+ *
+ ****************************************************************************/
+
+/*------------------------------------------
+Foreign functions
+------------------------------------------*/
+create function slaslogger1(Bag of Vector b, Number indexedpos, 
+       Number totalcolumn, 
+       Charstring logfilename)-> Boolean
+as  foreign 'slas_write_indexed_logfilebbf';
+
+create function readblogfile(Charstring logfilename, 
+       Number cols)-> Bag of Vector 
+as foreign 'readblogfilebbf';
+
+/*WINDOWS*/
+create function write_window_blogfile(Stream of Window b, 
+       Number indexedpos, Number totalcolumn, 
+       Charstring logfilename)-> Stream of WinStats
+as  foreign 'write_window_blogfilebbf';
+
+/*------------------------------------------*/
+/*Simple stream*/
+create function tstream0(Integer j) -> Bag of Vector
+  as for each Integer i where i in iota(1, j)
+    begin
+      for each Integer k where k in iota(1, i)
+      return {i, k};
+    end;
+
+create function tstream(Integer j) -> Stream of Vector
+  as streamof(tstream0(j));
+
+create function ts(Vector v) -> Number as v[0];
+
+/* Projection of ts in stream reading from binary logfile*/ 
+create function logts(Vector of Number v)->Number as v[2];
+
+
+
+/*------------------------------------------
+Stream from and to CSV file
+--------------------------------------------*/
+/* Stream of vector of number from CSV log file*/
+create function streamCSVlogfile(Charstring csvlogfile)->
+       Stream of Vector of Number 
+ as streamof(csv_file_tuples(csvlogfile));
+
+/* Stream of timestamp tumbling windows on csv log file*/	
+create function wsCSVlogfile(Charstring csvlogfile, /*csv log file*/
+       Number stride, 			       /*stride*/
+       Number slide			       /*slide*/
+       )->Stream of Window 	       
+ as streamof(twindowize0(streamCSVlogfile(csvlogfile), #'logts', stride, slide, -1,
+    						   #'falsefn', #'truefn'));
+
+
+/*------------------------------------------
+Stream from and to Binary file
+--------------------------------------------*/
+/* Stream of vector of number from binary log file*/
+create function streamblogfile(Charstring blogfile, Number cols)->Stream of Vector of Number 
+ as streamof(readblogfile(blogfile, cols));
+
+/* Stream of timestamp tumbling windows on binary log file*/	
+
+create function wsblogfile(Charstring blogfile, /*binary log file*/
+       Number cols, 		     	       /*total columns*/ 
+       Number stride, 			       /*stride*/
+       Number slide			       /*slide*/
+       )->Stream of Window 	       
+ as streamof(twindowize0(streamblogfile(blogfile, cols), 
+    #'logts', stride, slide, -1,
+    #'falsefn', #'truefn'));
+

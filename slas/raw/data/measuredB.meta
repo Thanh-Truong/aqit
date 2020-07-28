@@ -1,0 +1,6 @@
+datafile=../raw/data/measuredB.bin
+cols=5
+Primary_indexfile=../raw/data/measuredB_Pindex.idx
+Secondary_indexfile=../raw/data/measuredB_Sindex.idx
+Statistic_indexfile=../raw/data/measuredB_stats.idx
+IndexedPos=4

@@ -1,0 +1,83 @@
+/*-*-sql-*-*******************************************************
+ * AMOS2
+ *
+ * Author: (c) 2014 Thanh Truong, UDBL
+ * $RCSfile: remote.osql,v $
+ * $Revision: 1.30 $ $Date: 2013/12/31 12:47:40 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Testing subquery on chunks
+ *
+ *****************************************************************
+ * $Log: remote.osql,v $	
+ *
+ ******************************************************************/
+cd("../raw/data");            
+
+register(unique_string("SubQueryTest"));      
+
+/*log_rawworkers("/Users/thanhtruong/Workspace/AmosNT/slas/raw/data");*/    
+
+lisp;
+(setq *enable-rawworker-log* "/Users/thanhtruong/Workspace/AmosNT/slas/raw/data")
+:osql      
+
+print("
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Run MapSubQueryOnChunks with a dummy job
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+");  
+
+create function job(Number a)->Number b  as iota(1, a) + 4;  
+set :sqfn = create_transient_function(#'job');  
+
+select lds into :lds from LogDataStream lds;    
+count(mapSubQueryOnChunks(spawn_all_RawWorkers(:lds), :sqfn, {5}, numChunks(:lds)));   
+
+
+print("
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Run MapSubQueryonChunks with query Q1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+");  
+create function q1()-> Bag of (Number, Number, Number , Number) 
+  as select m(lf) , s(lf) , bt(lf), et(lf) from LogFile_MeasuresB lf; 
+
+
+set :tsq1 = create_transient_function(#'q1'); 
+count(mapSubQueryOnChunks(spawn_all_RawWorkers(:lds), :tsq1, {}, numChunks(:lds)));
+
+print("
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rewrite a query Q2 to call MapSubQueryonChunks,which runs a subquery
+;; SQ2 on chunks
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+");
+lisp;    
+
+(setq *enable-raw-query-parallel* nil) 
+(setq *enable-raw-query-sequential* nil) 
+(setq *enable-raw-subquery-parallel* t) 
+;;(break raw-subquery-parallel-planer)      
+
+:osql    
+
+
+create function q4()-> Bag of (Number, Number, Number , Number, Number) 
+  as select m(lf) , s(lf) , bt(lf), et(lf), mv(lf) 
+  from LogFile_MeasuresB lf;                                      
+
+lisp;
+(setq startTime (clock))
+(checkequal 
+ ""
+ ((osql "count(q4());")
+  '((99984))))
+
+(setq endTime (clock))
+(formatl t "it took " (- endTime startTime) " s" t)
+
+:osql
+
+cd("../../regress");
+quit;

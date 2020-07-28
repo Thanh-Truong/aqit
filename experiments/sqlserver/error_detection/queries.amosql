@@ -1,0 +1,114 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2011 Thanh Truong, UDBL
+ * $RCSfile: queries.amosql,v $
+ * $Revision: 1.2 $ $Date: 2012/03/22 08:27:15 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Use Amos as mediator to transform error detection queries
+ *  before send them to SQL Server in backend.
+ *
+ ****************************************************************************
+ * $Log: queries.amosql,v $
+ * Revision 1.2  2012/03/22 08:27:15  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2012/03/12 08:52:52  thatr500
+ * *** empty log message ***
+ *
+ ****************************************************************************/
+
+/* *-------------------------------------------------------------------
+ * Queries in both AMOSQL and SQL format
+ *-------------------------------------------------------------------*/
+/*Query in SQL standard which is transformed by AQIT and then directed to SQL Server*/
+
+/*---------NO JOIN---------------*/
+ select time(l), powcon(l)
+ from    logdata_aqit l
+ where 
+        powcon(l)+1 <= 1;
+
+/*Utilize AQIT to translate ABS to a conjunction of equivalent predicates*/
+ select time(l), powcon(l)
+ from    logdata_aqit l
+ where 
+        abs(powcon(l)) <= 1;
+
+/*Reflexity: Join its self*/
+ select time(l1), powcon(l1)
+ from   logdata_aqit l1,  logdata_aqit l2
+ where 
+        powcon(l1)<= powcon(l2);
+
+
+/*---------JOIN---------------*/
+ select powcon(l), time(l), time(e), powcon(e)
+ from     expdata_aqit e, logdata_aqit l
+ where
+	time(e) = time(l);
+
+/*- eqijoin
+  - inequality with fix number*/
+ select powcon(l), time(l), time(e), powcon(e)
+ from     expdata_aqit e, logdata_aqit l
+ where
+	time(e) = time(l)
+ and     
+	powcon(l) <= 0.5;
+
+/*Join two tables with simple inequalitiy*/
+ select powcon(l), time(l), time(e), powcon(e)
+ from     expdata_aqit e, logdata_aqit l
+ where
+        powcon(l) <= powcon(e)
+ and 
+	time(e) = time(l);
+
+/*the same query*/
+
+ select powcon(l), time(l), time(e), powcon(e)
+ from     expdata_aqit e, logdata_aqit l
+ where
+	time(e) = time(l)
+ and 
+        powcon(l) <= powcon(e);
+
+/*Join two tables with absolute error*/
+
+ select time(e), powcon(l), powcon(e), time(l) 
+ from   expdata_aqit e ,logdata_aqit l 
+ where 
+	abs(powcon(e)- powcon(l))<= 0.5;
+
+
+ select powcon(l), time(l)
+ from     expdata_aqit e, logdata_aqit l
+ where
+        powcon(l)<= 0.5
+ and
+	time(l) = time(e);
+
+
+ select powcon(l), time(l), time(e), powcon(e) 
+ from expdata_aqit e, logdata_aqit l 
+ where powcon(l) - powcon(e)<= 2.0 
+ and time(e) = 1.0;
+
+
+
+ select time(e), powcon(l), powcon(e), time(l) 
+ from   expdata_aqit e ,logdata_aqit l 
+ where 
+	abs((powcon(e)- powcon(l)) / powcon(e)) <= 0.5;
+
+/**---------------------------------------------------------------------------------------*/
+select time(l), machine(l), powcon(l)
+ from   expdata_aqit e ,logdata_aqit l 
+ where 
+	powcon(e) <= powcon(l)
+and    
+        machine(e) = machine(l)
+and     
+        time(l)< 2009;

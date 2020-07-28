@@ -1,0 +1,235 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: complex.osql,v $
+ * $Revision: 1.1 $ $Date: 2012/01/20 17:34:40 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Complex tests
+ *
+ ****************************************************************************
+ * $Log: complex.osql,v $
+ * Revision 1.1  2012/01/20 17:34:40  thatr500
+ * *** empty log message ***
+ *
+ *
+ ****************************************************************************/
+
+create function colorHistogram(Charstring pic)->Vector of Number features
+  as stored;
+create function pId(Charstring pic)->Number id as stored;
+
+create_index('pId', 'id', 'MBTREE' , 'multiple');
+
+create_index('colorHistogram', 'features', 'XTREE' , 'multiple');
+
+add colorHistogram('Pic001')={1.0,2.0,3.0,4.0};
+add colorHistogram('Pic002')={1.0,2.0,3.0,5.0};
+add colorHistogram('Pic003')={1.0,2.0,2.0,6.0};
+add colorHistogram('Pic004')={1.0,2.0,3.0,4.0};
+add colorHistogram('Pic005')={5.0,6.0,7.0,8.0};
+add colorHistogram('Pic006')={1.0,2.0,3.0,4.0};
+add colorHistogram('Pic007')={5.0,6.0,7.0,8.0};
+
+add pId('Pic001')= 1;
+add pId('Pic002')= 2;
+add pId('Pic003')= 3;
+add pId('Pic004')= 4;
+add pId('Pic005')= 5;
+add pId('Pic006')= 6;
+add pId('Pic007')= 7;
+
+
+remove colorHistogram('Pic004')={1.0,2.0,3.0,4.0};
+remove colorHistogram('Pic006')={1.0,2.0,3.0,4.0};
+
+remove colorHistogram('Pic005')={5.0,6.0,7.0,8.0};
+remove colorHistogram('Pic007')={5.0,6.0,7.0,8.0};
+
+remove pId('Pic004')= 4;
+remove pId('Pic006')= 6;
+remove pId('Pic005')= 5;
+remove pId('Pic007')= 7;
+
+create function q3() -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+           euclid(colorHistogram(p), {1, 2, 3, 4}) <= 3.0;
+
+create function q4(Vector of Number v) -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+           euclid(colorHistogram(p), v) <= 3.0;
+
+create function q5(Vector of Number v, Number eps) -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+           euclid(colorHistogram(p), v) <= eps;
+
+
+
+create function q6() -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+           (7 / ((3 + euclid(colorHistogram(p), 
+                     {1, 2, 3, 4})) *2 - 1))* 2 - 0.0004 > (2/2 + 0) *1;
+
+
+create function q7() -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+           4/(4/((7 / ((3 + euclid(colorHistogram(p), 
+                     {1, 2, 3, 4})) *2 - 1))* 2)) - 0.0004 
+            > (3 - (2/2 + 0)*1 - 1);
+
+create function t()-> Number as (2-1)*3/4;
+
+create function q8() -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+           4 / euclid(colorHistogram(p), {1, 2, 3, 4})
+            > 0.75;
+
+
+create function q80() -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+          (3 - (2/2 + 0)*1 - 1) < 
+               1/3/4/
+               (4/
+                 ((7 / 
+                    ((3 + euclid(colorHistogram(p), 
+                        {1, 2, 3, 4})) *2 - 1))* 28)) - 0.0004;
+
+create function q81() -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+           4/(4/((7 / ((3 + euclid(colorHistogram(p), 
+                     {1, 2, 3, 4})) *2 - 1))* 2)) - 0.0004 
+          + 1/1 - 1 > (3 - (2/2 + 0)*1 - 1);
+
+
+create function q82() -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+           4 / euclid(colorHistogram(p), {1, 2, 3, 4})
+            + t() > t();
+
+
+
+create function q9(Charstring cap, Number difference) -> Bag of Number
+      as 
+  select q
+  from Charstring p, Charstring q
+  where  euclid(colorHistogram(q), colorHistogram(p)) < difference 
+         and p = cap;
+
+create function q10(Number id, Number difference) -> Bag of Number
+      as 
+  select pId(q)
+  from Charstring p, Charstring q
+  where  euclid(colorHistogram(q), colorHistogram(p)) < difference 
+         and pId(p) = id;
+
+
+create function q11(Number id, Number difference) -> Bag of Number
+      as 
+  select pId(q)
+  from Charstring p, Charstring q, Number pi, 
+       Vector of Number f1, Vector of Number f2
+  where 
+        f1 =  colorHistogram(q)
+     and f2 = colorHistogram(p)
+     and pi = pId(p)
+     and pi = id
+     and euclid(f1, f2) < difference;
+
+create function q12(Number id, Number difference) -> Bag of Number
+as 
+  select pId(q)
+  from Charstring p, Charstring q
+  where pId(p) = id
+  and   
+     1 / 
+      power(euclid(colorHistogram(p), 
+                    colorHistogram(q)), 2)
+         
+        > difference;
+
+create function q13(Number id, Number difference) -> Bag of Number
+as 
+  select pId(q)
+  from Charstring p, Charstring q
+  where pId(p) = id
+  and   1 / 
+     (sqrt(euclid(colorHistogram(p), colorHistogram(q))) + 1) 
+        > (1 / (1 + difference));
+
+create function q14(Vector of Number v, Number eps) -> Bag of Charstring
+  as select p from Charstring p 
+     where 
+           1+1+1+euclid(colorHistogram(p), v)+2+3+4 <= eps;
+
+
+create function q15(Number id, Number difference) -> Bag of Number
+as 
+  select pId(q)
+  from Charstring p, Charstring q
+  where pId(p) = id
+  and   abs(euclid(colorHistogram(p), colorHistogram(q)))
+        < difference;
+
+create function q16(Number id, Number difference) -> Bag of Number
+as 
+  select pId(q)
+  from Charstring p, Charstring q
+  where pId(p) = id
+  and   abs(euclid(colorHistogram(p), colorHistogram(q)))
+        < difference;
+
+
+create function q17(Number id, Number difference) -> Bag of Number
+as 
+  select pId(q)
+  from Charstring p, Charstring q, Number d
+  where pId(p) = id
+  and   d = euclid(colorHistogram(p), colorHistogram(q))
+  and   abs(d) < difference;
+
+
+create function q18(Number id, Number difference) -> Bag of Number
+as 
+  select pId(q)
+  from Charstring p, Charstring q, Number d
+  where pId(p) = id
+  and   d = euclid(colorHistogram(p), colorHistogram(q))
+  and   (1/2) *(1 - sqrt(power(d, 2) + 0.01)) > difference;
+
+
+
+/*Test smart ordering to-be-rewritten predicate*/
+create function q19() -> Bag of Charstring
+as 
+ select p from Charstring p /*swap variables*/
+ where 
+       4 / (0.001 + euclid({1, 2, 3, 4}, colorHistogram(p)))
+         > t();
+
+create function q20(Charstring q) -> Bag of Charstring
+as 
+  select p from Charstring p 
+	/*swap variables*/
+  where 
+           4 / (0.001 + euclid(colorHistogram(q), colorHistogram(p)))
+            > t();
+
+create function q21(Charstring q) -> Bag of Charstring
+as 
+ select p from Charstring p 
+	/*swap variables*/
+ where 
+           4 / (0.001 + euclid(colorHistogram(p), colorHistogram(q)))
+            > t();
+
+

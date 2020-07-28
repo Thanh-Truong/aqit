@@ -1,0 +1,105 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: AMOSQL,v $
+ * $Revision: 1.1 $ $Date: 2006/02/12 20:01:08 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Raw Worker
+ *
+ ****************************************************************************
+ * $Log: AMOSQL,v $
+ *
+ ****************************************************************************/
+/***************************************************************************
+RawWorkerRemote
+****************************************************************************/
+create type RawWorkerRemote properties 
+       (state Number, port Port, 
+       rf RawLogFile, mf RawMetaFile);
+
+create function make_RawWorkerRemote(Number state, Object p, RawLogFile rf, RawMetaFile mf)
+     ->RawWorkerRemote rwm
+ as begin
+      create RawWorkerRemote (state, port, rf, mf) instances rwm (state, cast(p as Port), rf, mf);
+      return rwm;
+    end; 
+
+create function spawn_RawWorker(RawLogFile rf, RawMetaFile mf)->Port 
+as foreign 'spawn-rawworkerfn';
+
+create function spawn_RawWorker_on_chunk(RawLogFile rf, RawMetaFile mf)
+         ->RawWorkerRemote rwm
+ as 
+   begin
+      declare Port port;
+      set port = spawn_RawWorker(rf, mf);
+      create RawWorkerRemote (state, port, rf, mf) instances rwm (1, port, rf, mf);
+      return rwm;
+  end;
+
+create function spawn_all_RawWorkers(LogDataStream lds)->Vector of RawWorkerRemote
+  /*Spawn all RawWorkers corresponding to number of chunks. Note that, some
+    warm RawWorkers will be re-used */
+as foreign 'spawn-all-rawworkersfn'; 
+
+/**********************************************************************************
+Dummy arguments maker
+***********************************************************************************/
+create function dummyRange(Number range)->Vector of Vector of Number 
+ /*dummy vector of range. just for test iota*/
+ as vectorof(select {i, i + 1} from Number i where i in iota(0,range - 1));     
+
+create function dummyRangeEmpty(Number range)->Vector of Vector 
+ /*Vector of empty vector; e.g: {{},{},{},{}} */
+ as vectorof(select {} from Number i where i in iota(0,range - 1));     
+
+/***************************************************************************
+FULLSCAN on chunks
+****************************************************************************/
+create function rawworker_fullscan_Chunk()->Object 
+  /*RawWorker fullscans on chunk*/
+ as foreign 'rawworker-fullscan-chunkfn';
+
+create function fullscan_Chunk(Charstring datafile, Number cols)->Object 
+   /*Just a general fullscan on chunk, not by RawWorker*/
+ as foreign 'fullscan-datafile-chunkfn';
+
+/***************************************************************************
+MulticastReceive on chunks
+****************************************************************************/
+create function multicastReceiveChunks0(Vector peers, Charstring fn, Vector args) 
+                                 -> Bag of Object
+  as foreign 'multicast-receive-chunks0';
+
+create function multicastReceiveChunks1(Vector peers, Charstring fn, Vector args)-> Object 
+       as foreign 'multicast-receive-chunks1';
+
+create function multicastReceiveChunks(Bag of RawWorkerRemote brwm, Charstring queryfn, 
+         Vector args)-> Object 
+       /*- brwm:  bag of RawWorkRemote
+         - fn  : query function
+	 - args: arguments for fn
+        multicastReceiveChunks1  --> sabesan
+	multicastReceiveChunks0  --> tore 
+        */
+ as multicastReceiveChunks1(vectorof(select portname(p) from Port p where p = port(in(brwm))),
+                           queryfn,
+                           args);
+
+create function multicastReceiveChunks(Vector of RawWorkerRemote vector_rwm, Charstring queryfn, 
+                Number fanout)-> Object 
+       /* no argument is given. It broadcast queryfn (no arguments)
+        */
+ as foreign 'multicast-receive-chunks';
+
+          
+/*2014-03-07 map subquery (transient) on chunks**/
+create function mapSubQueryOnChunks(
+       		Vector of RawWorkerRemote vector_rwm, 
+       		Object sqfn,   	  	 /*transient subquery function*/
+       		Vector args, 			 /*arguments of sqfn*/
+		Number fanout)-> Object 	 /*fanout number of dynamic generated nodes*/
+ as foreign 'mapSubQueryOnChunks1';  
+

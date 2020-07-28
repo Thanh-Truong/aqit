@@ -1,0 +1,48 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: AMOSQL,v $
+ * $Revision: 1.1 $ $Date: 2006/02/12 20:01:08 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Mapped type (Proxy) for Raw file
+ *
+ ****************************************************************************
+ * $Log: AMOSQL,v $
+ *
+ ****************************************************************************/
+
+/***************************************************************************
+ PROXY for MAPPED RELATION
+***************************************************************************/
+/*Extent of a raw file*/
+create function RawFile_rawcc()->Bag of (Number m, Number s, Number bt, Number et, Number mv) 
+as foreign 'raw-full-scanfn'; 
+
+/*Mapped type*/
+create_mapped_type("RawFile",{"m", "s", "bt"},{"m","s", "bt", "et", "mv"},"RawFile_rawcc");
+
+/*AmosQL query
+select m(r), s(r), bt(r), et(r), mv(r) from RawFile r;
+*/
+
+/*Add another proxy to queriable in SQL*/
+create function sql:RawFile()->(Number m, Number s, Number bt, Number et,  Number mv)  
+   as in(rawfile_rawcc());
+
+add_descr_index_cc('B-tree', #'RAWFILE_RAWCC->NUMBER.NUMBER.NUMBER.NUMBER.NUMBER', 4);
+
+lisp;
+(setq _save-intermediates_ t)
+(setq *use-dnf* nil)
+(setq *enable-aqit* t)
+
+;;; Mark 'rawfile_rawcc' as core cluster function
+(putobject (getfunctionnamed 'rawfile_rawcc) 'cclusterfct? t)
+
+:osql
+
+create function import_rawfile_mappedtype(Charstring alias, Number cols,
+                            Number indexedpos)->Boolean
+as foreign 'import-raw-log-file';

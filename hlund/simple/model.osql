@@ -1,0 +1,63 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: model.osql,v $
+ * $Revision: 1.3 $ $Date: 2013/06/12 12:58:44 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Local AmosQL tables to control writting Hagllund log data
+ *
+ ****************************************************************************
+ * $Log: model.osql,v $
+ * Revision 1.3  2013/06/12 12:58:44  thatr500
+ * Changed database schema for logged data streams (machine measurements)
+ *
+ * Revision 1.2  2013/01/11 16:49:12  thatr500
+ * For arriving log events
+ * -  keep the most recent events (of given sensor, machine)  in the main memory.
+ * - automatically calculate the end time of events.
+ * - and flush to temporay ( CSV) files / database only if the events was finished.
+ *
+ * Revision 1.1  2006/02/12 20:01:08  torer
+ * Folder AmosNT/headers contains CVS header templates
+ *
+ ****************************************************************************/
+create function variableid(Charstring var)-> Number id as 
+ /*mapping from variable name to its id*/
+ stored;
+create function current_var_id()->Number as stored;
+set current_var_id() = 0;
+
+create function add_newvariable(Charstring var)-> Number as 
+begin 
+  set current_var_id() = current_var_id()+1;
+  add variableid(var) = current_var_id();
+  return current_var_id();
+end;
+
+create function machineid(Charstring mn)-> Number id as 
+ /*mapping from machine name to its id*/
+ stored;
+
+create function current_machine_id()->Number as stored;
+set current_machine_id() = 0;
+
+create function add_newmachine(Charstring mn)-> Number as 
+begin 
+  set current_machine_id() = current_machine_id()+1;
+  add machineid(mn) = current_machine_id();
+  return current_machine_id();
+end;
+
+
+create function sensor(Number machineid)->Bag of Number as stored;
+/*Given a machine id, returns a list of installation sensors on it*/
+
+create function openCSVtoStoreMV(Number varid)->Boolean as stored;
+/*Given a variable, return TRUE if there is a CSV file storing measurements on
+ that variable*/
+
+create function currentMV(Number varid,Number machineid)->Vector of  Real
+/*Keeps most recent measurement valued of a given varid on machineid*/ 
+as stored;

@@ -1,0 +1,33 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: init.osql,v $
+ * $Revision: 1.2 $ $Date: 2012/05/23 07:33:46 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Init script 
+ *
+ ****************************************************************************
+ * $Log: init.osql,v $
+ *
+ ****************************************************************************/
+
+
+create function slaslogger1(Bag of Vector b, Number indexedpos, Number totalcolumn, 
+       Charstring logfilename)-> Boolean
+as  foreign 'slas_write_indexed_logfilebbf';
+
+create function readblogfile(Charstring logfilename, Number cols)-> Bag of Vector 
+as foreign 'readblogfilebbf';
+
+create function xxx(Number a, Number b)-> Boolean  as foreign 'xxxbbf';
+
+/*WINDOWS*/
+create function write_window_blogfile(Stream of Window b, Number indexedpos, Number totalcolumn, 
+       Charstring logfilename)-> Stream of WinStats
+as  foreign 'write_window_blogfilebbf';
+
+create function slasraw:logdata(Window w, Number indexedpos,Number totalCols,
+       				 Charstring datafile)->Winstats
+  as foreign 'write_window_blogfile1bbf';

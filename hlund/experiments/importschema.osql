@@ -1,0 +1,42 @@
+/*------------------------------------------------------------------
+Settings
+-------------------------------------------------------------------*/
+parteval("plus");
+parteval("times");
+
+lisp;
+(setq _save-intermediates_ t)
+(setq *use-dnf* nil)
+(setq *enable-aqit* t)
+(setq *aqit-gcp* nil)
+:osql
+/*------------------------------------------------------------------
+Connection
+-------------------------------------------------------------------*/
+lisp;
+(with-directory "../../experiments/" (load-amosql "connection.osql"))
+;;------------------------------------------------------------------
+;; Caching is ON to cut down COLUMN look up cost
+;;------------------------------------------------------------------
+(memo-function 'get-columns)
+
+:osql
+/*--------------------------------------------------------------------
+Importing (metadata) tables
+----------------------------------------------------------------------*/
+import_table(aqit_jdbc(), "sensor");
+import_table(aqit_jdbc(), 'equipment');
+import_table(aqit_jdbc(), 'reg407');
+import_table(aqit_jdbc(), 'reg408');
+
+/*--------------------------------------------------------------------
+Relation tables were mapped to core cluster (cc) functions.
+Now, the cc are mapped again to make sql queryable
+----------------------------------------------------------------------*/
+create function sql:sensor()->(Integer e, Integer s, Charstring name, Real ev, Real ad, Real rd) as sql:sensor_aqit();
+create function sql:equipment()->(Integer e, Charstring name) as sql:equipment_aqit();
+create function sql:reg407()->(Integer e, Real ts, Real mv) as sql:reg407_aqit();
+create function sql:reg408()->(Integer e, Real ts, Real mv) as sql:reg408_aqit();
+
+add_descr_index_cc('B-tree', #'SQL:REG407_AQIT->INTEGER.REAL.REAL', 2);
+add_descr_index_cc('B-tree', #'SQL:REG408_AQIT->INTEGER.REAL.REAL', 2);

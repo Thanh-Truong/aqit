@@ -1,0 +1,151 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: sigstreamgen.osql,v $
+ * $Revision: 1.2 $ $Date: 2012/05/31 08:13:02 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Time sequence generator
+ *
+ ****************************************************************************
+ * $Log: sigstreamgen.osql,v $
+ * Revision 1.2  2012/05/31 08:13:02  thatr500
+ * added some helping functions
+ *
+ * Revision 1.1  2012/05/31 07:25:00  thatr500
+ * Time sequence generator
+ *
+ *
+ ****************************************************************************/
+
+/*---------------------------------------------------------------------------
+Random functions
+---------------------------------------------------------------------------*/
+create function drand(Number a, Number b)-> Number 
+as if (a=b) then return a else return (a + (rand(a, b)/b)*(b-a));
+
+create function drand(Number a)-> Number 
+as if (a=0) then return 0.0 else return ((rand(a)/a)*(a));
+
+create function frandom(Number upper) -> Number
+  as drand(upper*1000)/1000.0;
+
+create function frandom(number lower, Number upper) -> Number
+  as lower+frandom(upper-lower);
+
+create function randombag(Number lower, Number upper, Number points) 
+                        -> Bag of Number
+  as for each Integer i where i in iota(1,points)
+     return frandom(lower, upper);
+
+create function randomStream(Number lower, Number upper, Number points)
+                           -> Stream of Number
+  as streamof(randombag(lower, upper, points));
+
+/*---------------------------------------------------------------------------
+Some helping functions
+---------------------------------------------------------------------------*/
+create function calTrend()->Number as
+begin
+  declare Number trend;
+  set trend  =  rand(0, 2); 
+  if (trend = 0) then set trend = -1;
+  return trend;
+end;
+
+/*Peak in this iter should go beyond the thresold*/
+create function shouldbeyondThresold(Number Percent Number iter)->Boolean
+ as (Percent != 0 and mod(iter, floor(1/percent))=0);
+
+/*---------------------------------------------------------------------------
+Approximately, a cycle is consider as a number of intervals.
+---------------------------------------------------------------------------*/
+
+create function sincycle(Number i)->Bag of Number
+  /* generate sinus cycle over i intervals */
+  as roundto(sin(iota(0,i)*2*pi()/i),4);
+
+create function sincyclevector(Number i) -> Vector of Number
+  as select vectorof(sincycle(i));
+
+
+create function disturbance(Number freq,Number size)
+                          -> Number
+  as if (frandom(0, 1) < freq) then  return frandom(size) else return 0;
+
+create function siggen(Vector of Number cycle,
+                       Number cycl,        /*Cycle length*/
+                       Number cyclefluct,  /*Cycle fluctuation*/
+                       Number abnormfreq,  /*Abnormal frequency*/
+                       Number abnormdur,   /*Abnormal duration*/
+		       Number abnormsize,  /*Abnormal size = abrnomal height*/
+                       Number thresold,    /*Thresold*/     
+                       Number cycles)
+                       -> Bag of Vector of Number /*Time / Value*/
+as
+ for each Integer c where c in iota(0,cycles)
+         for each Number v, Integer i where v = cycle[i]
+           return (select {i+(c*dim(cycle)-1),  
+                  v + frandom((0- cyclefluct), cyclefluct) +
+                  calTrend()*disturbance(abnormfreq, abnormsize)});
+
+/*----------------------------------------------------------------------------
+ 
+Plot it !
+------------------------------------------------------------------------------*/
+create function plot_curve(Number points)->Integer 
+as  plot({0}, /*plot 0th column*/
+             /*just make it 2D*/
+         vectorof({sincycle(points), 0}));
+
+create function plot_curve(Number points)->Integer 
+as  plot({0}, /*plot 0th column*/
+             /*just make it 2D*/
+         vectorof(sincycle(points), 0}));
+
+/*Plot a single curve*/
+plot_curve(20);
+
+/*Case 1 - No disturbance at all*/
+set :c1= siggen(sincyclevector(20),
+       5,    /*Cycle length*/
+       0.05,  /*Cycle fluctuation.*/
+       0,    /*Abnormal frequency !!!!!! NO DISTURBANCE*/
+       100,  /*Abnormal duration*/
+       15,    /*Abnormal size = abrnomal height*/
+       22,    /*Thresold*/
+       2     /*Number of cycles*/
+        );
+
+plot({1}, vectorof(:c1));
+
+
+/*Case 2 - No disturbance + high fluctuation*/
+set :c2= siggen(sincyclevector(20),
+       5,    /*Cycle length*/
+       0.5,  /*Cycle fluctuation.*/
+       0,    /*Abnormal frequency !!!!!! NO DISTURBANCE*/
+       100,  /*Abnormal duration*/
+       15,    /*Abnormal size = abrnomal height*/
+       22,  
+       2     /*Number of cycles*/
+        );
+
+plot({1}, vectorof(:c2));
+
+/*Case 2 - Some disturbances */
+set :c3= siggen(sincyclevector(20),
+       5,    /*Cycle length*/
+       0.05,  /*Cycle fluctuation.*/
+       0.05,   /*Abnormal frequency*/
+       100,  /*Abnormal duration*/
+       15,    /*Abnormal size = abrnomal height*/
+       22, 
+       100     /*Number of cycles*/
+        );
+
+plot({1}, vectorof(:c3));
+
+
+

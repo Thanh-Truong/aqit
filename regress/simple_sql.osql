@@ -1,0 +1,68 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: simple_sql.osql,v $
+ * $Revision: 1.3 $ $Date: 2013/08/01 13:11:36 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Extra test for SQL parser + Rewrite OR by IN if applicable
+ *
+ ****************************************************************************
+ * $Log: simple_sql.osql,v $
+ * Revision 1.3  2013/08/01 13:11:36  thatr500
+ * revised AQIT regression test
+ *
+ * Revision 1.2  2013/02/19 06:05:24  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2012/04/27 14:34:49  thatr500
+ * Regression test for a complete routine
+ * SQL --> AmosQL --> Rewriter (AQIT) --> SQL Translator --> Database backend
+ *
+ * Revision 1.1  2006/02/12 20:01:08  torer
+ * Folder AmosNT/headers contains CVS header templates
+ *
+ ****************************************************************************/
+create function sql:employee(Integer ssn) -> (Charstring name, Number Income, Integer dept) as stored;
+create function sql:dept(Integer dno) -> Charstring dname as stored;
+
+
+ sql("insert into employee values (12345, 'Kalle', 10000, 1)");
+ sql("insert into employee values (12386, 'Elsa', 12000, 2)");
+ sql("insert into employee values (12493, 'Olof', 5000, 1)");
+
+
+sql("insert into dept values(1, 'Toys')");
+sql("insert into dept values(2, 'Coths')");
+
+sql("select abs(income + 1), name from Employee");
+
+sql("select greater(1,2), name from Employee");
+
+
+/*sql("select date() from Employee");*/
+
+sql("select dname from dept, employee where dept = dno and name in ('Kalle', 'Elsa')");
+
+
+create function join_query()->Bag of Vector  
+as sql("select dname from dept, employee where dept = dno and name in ('Kalle', 'Elsa')");
+
+lisp;
+
+
+(checkequal  "Query results"
+	((osql "sql('select abs(1 - income) from Employee');")
+  	 '((#(9999)) (#(11999)) (#(4999))))
+	;;((osql "count(sql('select date() from Employee'));")
+  	;; '((3)))
+	((osql "join_query();")
+         '((#("Toys")) (#("Coths"))))
+)
+
+(checkequal  "Test rewrite OR by IN "
+	((optpred-contain _in_ (extract-optpred))
+	t))
+
+:osql

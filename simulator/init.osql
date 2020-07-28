@@ -1,0 +1,30 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: init.osql,v $
+ * $Revision: 1.2 $ $Date: 2012/05/23 07:33:46 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Init script for simulator
+ *
+ ****************************************************************************
+ * $Log: init.osql,v $
+ * Revision 1.2  2012/05/23 07:33:46  thatr500
+ * More robust generator
+ *
+ * Revision 1.1  2012/05/21 07:24:00  thatr500
+ * Simulator interface in AmoSQL
+ *
+ ****************************************************************************/
+create function tstream(Number l, Number u)-> Bag of Vector of Number 
+as foreign 'tstreambbf';
+
+create function plot_curve(Number l, Number u)->Integer 
+as  plot({0} /*plot 0th column*/, vectorof(tstream(l, u)));
+
+create function streamdatatofile(Charstring filename, Bag of Vector of Number)->Boolean
+as foreign 'streamtofilebbf';
+
+create function generateData(Charstring filename, Number size)-> Boolean
+as  streamdatatofile(filename, tstream(1, size));

@@ -1,0 +1,27 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012  Thanh Truong, UDBL
+ * $RCSfile: connection.osql,v $
+ * $Revision: 1.1 $ $Date: 2012/04/18 07:57:32 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Connection to database server
+ *
+ ****************************************************************************
+ * $Log: connection.osql,v $
+ * Revision 1.1  2012/04/18 07:57:32  thatr500
+ * Auto-run with different configurations
+ *
+ ****************************************************************************/
+load_lisp("connection.lsp"); 
+
+/*jdbc instance*/
+create function aqit_jdbc()->JDBC as  evalv(jdbc_string())[0];
+
+/*dburl*/
+create function aqit_dburl()->Charstring as  dburl_string();
+
+/*connect*/
+connect(aqit_jdbc(), aqit_dburl() , getUsername(), getPassword());
+

@@ -1,0 +1,98 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: AMOSQL,v $
+ * $Revision: 1.1 $ $Date: 2006/02/12 20:01:08 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Raw generate mapped relation
+ *
+ ****************************************************************************
+ * $Log: AMOSQL,v $
+ *
+ ****************************************************************************/
+create function rewrite_rawcc(Function fo)->Boolean  as foreign 'rewrite-rawcc-fn';
+
+create function mark_it_as_rawcc(Function f, LogDataStream lds)->Boolean as foreign 'mark-it-rawccfn';
+
+create function raw_generateFullScanNoChunks(Charstring columnNames, Charstring mappedRelation, 
+Number cols)->Boolean as foreign 'raw-generate-fullscan-no-chunks';  
+
+create function raw_generateColumns(Vector of Charstring columnNames, Number cols, 
+       Charstring seperator, Boolean includeDataType)->Charstring
+as begin
+   declare Charstring s_cols, Charstring datatype;
+   set s_cols = "";
+   if (includeDataType = TRUE) then set datatype = "Number " else set datatype = "";
+   for each Number i  where i in iota(0, cols - 2)
+      set s_cols = s_cols + datatype + vref(columnNames,i) + seperator;
+   set s_cols = s_cols + datatype + vref(columnNames, cols -1);
+   return s_cols;
+end;
+
+create function raw_generateColumns(Vector of Charstring columnNames, Number cols, 
+       Charstring seperator)->Charstring
+as raw_generateColumns(columnNames, cols, seperator, TRUE);
+
+create function raw_generatecorecluster(Vector of Charstring columnNames, 
+       Charstring mappedRelation, LogDataStream lds)->Charstring
+as begin
+  declare Charstring s_cc, Function fcc;
+  /*Form core cluster function*/
+  set s_cc = "create function " + mappedRelation + "_rawcc()->Bag of ";
+  set s_cc = s_cc + "(" + raw_generateColumns(columnNames, dim(columnNames), ",")  + ")";
+  set s_cc =  s_cc +" as foreign 'raw-fullscan-nochunks-" + mappedRelation + "';";
+  /*Generate core cluster function*/
+  set fcc = eval(s_cc);
+  mark_it_as_rawcc(fcc, lds);
+  rewrite_rawcc(fcc);
+  return s_cc;
+end;
+
+
+create function raw_generatemappedRelation(Vector of Charstring columnNames, 
+       		                           Charstring mappedRelation)->Boolean
+as begin
+  /*Form mapped type function*/
+  create_mapped_type(mappedRelation, columnNames, columnNames,
+                      mappedRelation + "_rawcc");
+  /*Generate mapped type*/
+  return TRUE;		    
+end;       
+
+create function raw_generateSQLProxy(Vector of Charstring columnNames, Charstring mappedRelation)->Charstring
+as begin
+  /*Add another proxy to queriable in SQL*/
+  declare Charstring s_sqlproxy;
+  /*Form s_sqlproxy*/
+  set s_sqlproxy = "create function sql:" + mappedRelation + "()->"
+            + "(" + raw_generateColumns(columnNames, dim(columnNames), ",")  + ")" 
+	    + " as in " + "(" + mappedRelation +  "_rawcc()" + ");";
+  /*Generate SQL proxy function*/
+  eval(s_sqlproxy);
+  return s_sqlproxy;
+end;     
+
+/*Generate definitions of RowToColumns in AmosQL*/
+create function raw_generateRowToColumns(Vector of Charstring columnNames, 
+       Charstring mappedRelation, LogDataStream lds)->Charstring
+as begin
+  declare Charstring s_ccv, Charstring s_cct, Function fccv, Function fcct, Number cols;
+  set cols = dim(columnNames);
+  /*Form RowToColumns function*/
+  set s_ccv = "create function " + mappedRelation + "_RowToColumns(Vector v)-> ";
+  set s_cct = "create function " + mappedRelation + "_RowToColumns(Object v)-> ";
+  set s_ccv = s_ccv + "(" + raw_generateColumns(columnNames, cols, ",", TRUE)  + ")";
+  set s_cct = s_cct + "(" + raw_generateColumns(columnNames, cols, ",", TRUE)  + ")";
+  set s_ccv = s_ccv + " as foreign '" + mappedRelation  + "_vRowToColumnsfn';"; 
+  set s_cct = s_cct + " as foreign '" + mappedRelation  + "_tRowToColumnsfn';"; 
+  
+  /*Generate the function*/
+  set fccv = eval(s_ccv);
+  set fcct = eval(s_cct);
+  return s_ccv;
+end;  
+
+create function raw_generateImplRowToColumns(LogDataStream lds)->Boolean
+ as foreign 'raw-generateImplRowToColumns';

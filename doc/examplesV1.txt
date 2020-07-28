@@ -1,0 +1,147 @@
+                                                                     
+                                                                     
+                                                                     
+                                             
+Title:
+
+Scalable search for abnormalities in log databases
+
+Typical queries:
+
+select t,f(t) where f(t)>thres /* E.g. to find when power consumption is too high */
+
+Scalability can be shown by using AQIT:
+
+select t, f(t) from log t where abs(f(t)-C1) > C2
+
+select t,f(t) where |f(t)| > th (e.g. 
+
+select t,f(t) where |f(t)-e(t)| > th (e.g. when f(t) measures temperature 
+                                      in Celcius)
+select t,f(t) where |f(t)-e(t)|/e(t) > th (e.g. when f(t) mesaures power
+                                           consumption)
+
+
+
+Schema:
+
+LogData(Time, MachineID, PowCon)
+ExpData(MachineID, PowCon)
+
+Queries:
+
+Q1:
+
+This historical ad hoc query investigates when the power consumption
+for any machine was outside a given expected range.
+
+select l.time, l.PowCon, l.MachineID
+from Logdata l
+where abs(l.PowCon - 5000) > 5;
+
+----------------------------
+Q1a (preferred):
+
+This query checks when the power consumption for any machine was
+outside an exprected range stored in the database during the last 30
+days.
+
+Before AQIT:
+select l.time, l.PowCon, l.MachineID
+from LogData l, ExpData e
+where l.MachineID = e.MachineID and
+      abs(l.PowCon - e.Powcon) > 5 and
+      l.time + 30 >= date()
+
+After AQIT:
+
+
+( select l.time, l.PowCon, l.MachineID
+  from LogData l, ExpData e
+  where l.MachineID = e.MachineID and
+      l.PowCon > 5 + e.Powcon and
+      l.time + 30 >= date()
+)
+UNION 
+( select l.time, l.PowCon, l.MachineID
+  from LogData l, ExpData e
+  where l.MachineID = e.MachineID and
+      l.PowCon  < - 5 + e.Powcon and
+      l.time + 30 >= date()
+)
+
+
+----------------------------
+Q2:
+
+For a given set of machines investigatye whether their power
+consumption was outside the expected range during the last 30 days.
+
+Before AQIT:
+
+select l.time, l.PowCon, l.MachineID
+from LogData l, ExpData e
+where l.MachineID = e.MachineID and
+      abs(l.PowCon - e.Powcon) > 5 and
+      e.MachineID in (1,2,3) and
+      l.time + 30 >= date()
+
+After AQUIT:
+
+( select l.time, l.PowCon, l.MachineID
+  from LogData l, ExpData e
+  where l.MachineID = e.MachineID and
+      l.PowCon > 5 + e.Powcon and
+      e.MachineID in (1,2,3) and
+      l.time + 30 >= date()
+)
+UNION
+( select l.time, l.PowCon, l.MachineID
+  from LogData l, ExpData e
+  where l.MachineID = e.MachineID and
+      l.PowCon  < - 5 + e.Powcon and
+      e.MachineID in (1,2,3) and
+      l.time + 30 >= date()
+)
+
+
+----------------------------
+Q2a (preferred):
+
+For a given set of machines investigate whether their power
+consumption was outside the expected range during the last 30 days.
+
+Before AQIT:
+
+select l.time, l.PowCon, l.MachineID
+from LogData l, ExpData e
+where l.MachineID = e.MachineID and
+      abs(l.PowCon - e.Powcon) > 5 and
+      e.MachineID < 4 and
+      l.time + 30 >= date()
+
+After AQIT:
+
+Scale by increasing the number of selected machines. Does the number
+of machines influence the effectiveness of AQIT? YES, because the more
+nmachines the less improvement by AQIT! With too many machines AQUIT
+could possibly be slower. This depends on the query optimizer. I think
+one can show that the query response time is more stable with AQIT.
+
+
+
+( select l.time, l.PowCon, l.MachineID
+  from LogData l, ExpData e
+  where l.MachineID = e.MachineID and
+      l.PowCon > 5 + e.Powcon and
+      e.MachineID < 4 and
+      l.time + 30 >= date()
+)
+UNION
+( select l.time, l.PowCon, l.MachineID
+  from LogData l, ExpData e
+  where l.MachineID = e.MachineID and
+      l.PowCon  < - 5 + e.Powcon and
+      e.MachineID < 4 and
+      l.time + 30 >= date()
+)

@@ -1,0 +1,217 @@
+ sim
+
+ Timestamp is 520bb403 (Wed Aug 14 18:44:51 2013)
+
+ Preferred load address is 00400000
+
+ Start         Length     Name                   Class
+ 0001:00000000 00001816H .text                   CODE
+ 0002:00000000 00000084H .rdata                  DATA
+ 0002:00000084 00000000H .edata                  DATA
+ 0003:00000000 00000004H .CRT$XCA                DATA
+ 0003:00000004 00000004H .CRT$XCZ                DATA
+ 0003:00000008 00000004H .CRT$XIA                DATA
+ 0003:0000000c 00000004H .CRT$XIZ                DATA
+ 0003:00000010 00000294H .data                   DATA
+ 0003:000002a4 000000a8H .bss                    DATA
+ 0004:00000000 00000028H .idata$2                DATA
+ 0004:00000028 00000014H .idata$3                DATA
+ 0004:0000003c 000000f8H .idata$4                DATA
+ 0004:00000134 000000f8H .idata$5                DATA
+ 0004:0000022c 000002dcH .idata$6                DATA
+
+  Address         Publics by Value              Rva+Base     Lib:Object
+
+ 0001:00000000       _calTrend                  00401000 f   curve.obj
+ 0001:00000049       _calBase                   00401049 f   curve.obj
+ 0001:000000fa       _inPeakArea                004010fa f   curve.obj
+ 0001:00000125       _direction                 00401125 f   curve.obj
+ 0001:00000176       _shouldbeyondThresold      00401176 f   curve.obj
+ 0001:000001d0       _compensate                004011d0 f   curve.obj
+ 0001:000002ac       _tstreambbf                004012ac f   curve.obj
+ 0001:000008c5       _read_CurveConfig          004018c5 f   curve.obj
+ 0001:00000b20       _rotateMachine             00401b20 f   gen.obj
+ 0001:00000b59       _gettimevalofday           00401b59 f   gen.obj
+ 0001:00000b8c       _add_duration              00401b8c f   gen.obj
+ 0001:00000c2c       _init_time                 00401c2c f   gen.obj
+ 0001:00000cb3       _timetostring              00401cb3 f   gen.obj
+ 0001:00000d21       _writeline                 00401d21 f   gen.obj
+ 0001:00000d55       _writetupleMapper          00401d55 f   gen.obj
+ 0001:00000e51       _streamtofilebbf           00401e51 f   gen.obj
+ 0001:00001010       _read_MachineConfig        00402010 f   gen.obj
+ 0001:00001060       _streamNumber              00402060 f   main.obj
+ 0001:00001092       _testIntRand               00402092 f   main.obj
+ 0001:00001217       _testDoubleRand            00402217 f   main.obj
+ 0001:00001479       _testUtilities             00402479 f   main.obj
+ 0001:00001488       _main                      00402488 f   main.obj
+ 0001:0000155e       _a_result                  0040255e f   amos2:amos2.dll
+ 0001:00001564       _a_seta                    00402564 f   amos2:amos2.dll
+ 0001:0000156a       _new_real                  0040256a f   amos2:amos2.dll
+ 0001:00001570       _release                   00402570 f   amos2:amos2.dll
+ 0001:00001576       _new_array                 00402576 f   amos2:amos2.dll
+ 0001:0000157c       _lerror                    0040257c f   amos2:amos2.dll
+ 0001:00001582       _getreal                   00402582 f   amos2:amos2.dll
+ 0001:00001588       _a_round                   00402588 f   amos2:amos2.dll
+ 0001:0000158e       _resetfn                   0040258e f   amos2:amos2.dll
+ 0001:00001594       _a_mapbag                  00402594 f   amos2:amos2.dll
+ 0001:0000159a       _clearstack                0040259a f   amos2:amos2.dll
+ 0001:000015a0       _a_getdoubleelem           004025a0 f   amos2:amos2.dll
+ 0001:000015a6       _amos_toploop              004025a6 f   amos2:amos2.dll
+ 0001:000015ac       _free_connection           004025ac f   amos2:amos2.dll
+ 0001:000015b2       _free_scan                 004025b2 f   amos2:amos2.dll
+ 0001:000015b8       _a_connect                 004025b8 f   amos2:amos2.dll
+ 0001:000015be       _a_extimpl                 004025be f   amos2:amos2.dll
+ 0001:000015c4       _init_amos                 004025c4 f   amos2:amos2.dll
+ 0001:000015ca       _a_init_scan               004025ca f   amos2:amos2.dll
+ 0001:000015d0       _a_init_connection         004025d0 f   amos2:amos2.dll
+ 0001:000015d6       _rand                      004025d6 f   MSVCRT:MSVCRT.dll
+ 0001:000015e0       _sin                       004025e0 f   MSVCRT:MSVCRT.dll
+ 0001:000015e6       _floor                     004025e6 f   MSVCRT:MSVCRT.dll
+ 0001:000015ec       __ftol                     004025ec f   MSVCRT:MSVCRT.dll
+ 0001:000015f2       _ceil                      004025f2 f   MSVCRT:MSVCRT.dll
+ 0001:000015f8       _atof                      004025f8 f   MSVCRT:MSVCRT.dll
+ 0001:000015fe       _atoi                      004025fe f   MSVCRT:MSVCRT.dll
+ 0001:00001604       _getenv                    00402604 f   MSVCRT:MSVCRT.dll
+ 0001:0000160a       _mktime                    0040260a f   MSVCRT:MSVCRT.dll
+ 0001:00001610       _localtime                 00402610 f   MSVCRT:MSVCRT.dll
+ 0001:00001616       _time                      00402616 f   MSVCRT:MSVCRT.dll
+ 0001:0000161c       _sprintf                   0040261c f   MSVCRT:MSVCRT.dll
+ 0001:00001622       _fprintf                   00402622 f   MSVCRT:MSVCRT.dll
+ 0001:00001628       _free                      00402628 f   MSVCRT:MSVCRT.dll
+ 0001:0000162e       _malloc                    0040262e f   MSVCRT:MSVCRT.dll
+ 0001:00001634       _fclose                    00402634 f   MSVCRT:MSVCRT.dll
+ 0001:0000163a       _fopen                     0040263a f   MSVCRT:MSVCRT.dll
+ 0001:00001640       __setjmp3                  00402640 f   MSVCRT:MSVCRT.dll
+ 0001:00001646       _printf                    00402646 f   MSVCRT:MSVCRT.dll
+ 0001:0000164c       _srand                     0040264c f   MSVCRT:MSVCRT.dll
+ 0001:00001652       _mainCRTStartup            00402652 f   MSVCRT:crtexe.obj
+ 0001:00001762       __exit                     00402762 f   MSVCRT:MSVCRT.dll
+ 0001:00001768       __XcptFilter               00402768 f   MSVCRT:MSVCRT.dll
+ 0001:0000176e       _exit                      0040276e f   MSVCRT:MSVCRT.dll
+ 0001:00001774       ___p___initenv             00402774 f   MSVCRT:MSVCRT.dll
+ 0001:0000177a       ___getmainargs             0040277a f   MSVCRT:MSVCRT.dll
+ 0001:00001780       __initterm                 00402780 f   MSVCRT:MSVCRT.dll
+ 0001:00001786       __setdefaultprecision      00402786 f   MSVCRT:fp8.obj
+ 0001:00001798       ___setusermatherr          00402798 f   MSVCRT:MSVCRT.dll
+ 0001:0000179e       __matherr                  0040279e f   MSVCRT:merr.obj
+ 0001:000017a1       __setargv                  004027a1 f   MSVCRT:dllargv.obj
+ 0001:000017a2       ___p__commode              004027a2 f   MSVCRT:MSVCRT.dll
+ 0001:000017a8       ___p__fmode                004027a8 f   MSVCRT:MSVCRT.dll
+ 0001:000017ae       __onexit                   004027ae f   MSVCRT:atonexit.obj
+ 0001:000017da       _atexit                    004027da f   MSVCRT:atonexit.obj
+ 0001:000017ec       ___set_app_type            004027ec f   MSVCRT:MSVCRT.dll
+ 0001:000017f2       __except_handler3          004027f2 f   MSVCRT:MSVCRT.dll
+ 0001:000017f8       __controlfp                004027f8 f   MSVCRT:MSVCRT.dll
+ 0001:000017fe       ___dllonexit               004027fe f   MSVCRT:MSVCRT.dll
+ 0001:00001810       __ftime                    00402810 f   MSVCRT:MSVCRT.dll
+ 0002:00000020       __real@8@00000000000000000000 00403020     curve.obj
+ 0002:00000028       __real@8@400dfffe000000000000 00403028     curve.obj
+ 0002:00000030       __real@8@3ffe8000000000000000 00403030     curve.obj
+ 0002:00000038       __real@8@3fff8000000000000000 00403038     curve.obj
+ 0002:00000040       __real@8@40018000000000000000 00403040     curve.obj
+ 0002:00000048       __real@8@4000c000000000000000 00403048     curve.obj
+ 0002:00000050       __real@8@40008000000000000000 00403050     curve.obj
+ 0002:00000058       __real@8@4002a000000000000000 00403058     curve.obj
+ 0002:00000060       __real@8@4012f424000000000000 00403060     gen.obj
+ 0002:00000068       __real@8@4001a000000000000000 00403068     gen.obj
+ 0002:00000070       __real@8@40039800000000000000 00403070     main.obj
+ 0003:00000000       ___xc_a                    00404000     MSVCRT:cinitexe.obj
+ 0003:00000004       ___xc_z                    00404004     MSVCRT:cinitexe.obj
+ 0003:00000008       ___xi_a                    00404008     MSVCRT:cinitexe.obj
+ 0003:0000000c       ___xi_z                    0040400c     MSVCRT:cinitexe.obj
+ 0003:000002a0       ___defaultmatherr          004042a0     MSVCRT:merr.obj
+ 0003:000002d0       __dowildcard               004042d0     MSVCRT:wildcard.obj
+ 0003:000002d4       __newmode                  004042d4     MSVCRT:_newmode.obj
+ 0003:000002d8       __commode                  004042d8     MSVCRT:xncommod.obj
+ 0003:000002dc       __fmode                    004042dc     MSVCRT:xtxtmode.obj
+ 0003:000002e0       _f                         004042e0     <common>
+ 0003:000002e4       _MAX_MACHINE               004042e4     <common>
+ 0003:000002e8       _baseTime                  004042e8     <common>
+ 0003:000002f0       _machine                   004042f0     <common>
+ 0003:000002f8       _SIM_POSITIVEVAL           004042f8     <common>
+ 0003:00000300       _SIM_LENGTHC               00404300     <common>
+ 0003:00000308       _SIM_THRESOLDU             00404308     <common>
+ 0003:00000310       _SIM_NUMC                  00404310     <common>
+ 0003:00000318       _SIM_PERCENT               00404318     <common>
+ 0003:00000320       _SIM_INTERVAL              00404320     <common>
+ 0003:00000328       _SIM_HOWFAST               00404328     <common>
+ 0003:00000330       _SIM_HEIGHTA               00404330     <common>
+ 0003:00000338       _SIM_HEIGHTN               00404338     <common>
+ 0003:00000340       ___onexitend               00404340     <common>
+ 0003:00000344       ___onexitbegin             00404344     <common>
+ 0003:00000348       __adjust_fdiv              00404348     <common>
+ 0004:00000000       __IMPORT_DESCRIPTOR_amos2  00405000     amos2:amos2.dll
+ 0004:00000014       __IMPORT_DESCRIPTOR_MSVCRT 00405014     MSVCRT:MSVCRT.dll
+ 0004:00000028       __NULL_IMPORT_DESCRIPTOR   00405028     amos2:amos2.dll
+ 0004:00000134       __imp__atoi                00405134     MSVCRT:MSVCRT.dll
+ 0004:00000138       __imp___onexit             00405138     MSVCRT:MSVCRT.dll
+ 0004:0000013c       __imp____dllonexit         0040513c     MSVCRT:MSVCRT.dll
+ 0004:00000140       __imp___controlfp          00405140     MSVCRT:MSVCRT.dll
+ 0004:00000144       __imp___except_handler3    00405144     MSVCRT:MSVCRT.dll
+ 0004:00000148       __imp____set_app_type      00405148     MSVCRT:MSVCRT.dll
+ 0004:0000014c       __imp____p__fmode          0040514c     MSVCRT:MSVCRT.dll
+ 0004:00000150       __imp____p__commode        00405150     MSVCRT:MSVCRT.dll
+ 0004:00000154       __imp___adjust_fdiv        00405154     MSVCRT:MSVCRT.dll
+ 0004:00000158       __imp____setusermatherr    00405158     MSVCRT:MSVCRT.dll
+ 0004:0000015c       __imp___initterm           0040515c     MSVCRT:MSVCRT.dll
+ 0004:00000160       __imp____getmainargs       00405160     MSVCRT:MSVCRT.dll
+ 0004:00000164       __imp____p___initenv       00405164     MSVCRT:MSVCRT.dll
+ 0004:00000168       __imp__exit                00405168     MSVCRT:MSVCRT.dll
+ 0004:0000016c       __imp___XcptFilter         0040516c     MSVCRT:MSVCRT.dll
+ 0004:00000170       __imp___exit               00405170     MSVCRT:MSVCRT.dll
+ 0004:00000174       __imp__srand               00405174     MSVCRT:MSVCRT.dll
+ 0004:00000178       __imp__printf              00405178     MSVCRT:MSVCRT.dll
+ 0004:0000017c       __imp___setjmp3            0040517c     MSVCRT:MSVCRT.dll
+ 0004:00000180       __imp__fopen               00405180     MSVCRT:MSVCRT.dll
+ 0004:00000184       __imp__fclose              00405184     MSVCRT:MSVCRT.dll
+ 0004:00000188       __imp__malloc              00405188     MSVCRT:MSVCRT.dll
+ 0004:0000018c       __imp__free                0040518c     MSVCRT:MSVCRT.dll
+ 0004:00000190       __imp__fprintf             00405190     MSVCRT:MSVCRT.dll
+ 0004:00000194       __imp__rand                00405194     MSVCRT:MSVCRT.dll
+ 0004:00000198       __imp__sin                 00405198     MSVCRT:MSVCRT.dll
+ 0004:0000019c       __imp__floor               0040519c     MSVCRT:MSVCRT.dll
+ 0004:000001a0       __imp___ftol               004051a0     MSVCRT:MSVCRT.dll
+ 0004:000001a4       __imp__ceil                004051a4     MSVCRT:MSVCRT.dll
+ 0004:000001a8       __imp__atof                004051a8     MSVCRT:MSVCRT.dll
+ 0004:000001ac       __imp__ftime               004051ac     MSVCRT:MSVCRT.dll
+ 0004:000001ac       __imp___ftime              004051ac     MSVCRT:MSVCRT.dll
+ 0004:000001b0       __imp__getenv              004051b0     MSVCRT:MSVCRT.dll
+ 0004:000001b4       __imp__mktime              004051b4     MSVCRT:MSVCRT.dll
+ 0004:000001b8       __imp__localtime           004051b8     MSVCRT:MSVCRT.dll
+ 0004:000001bc       __imp__time                004051bc     MSVCRT:MSVCRT.dll
+ 0004:000001c0       __imp__sprintf             004051c0     MSVCRT:MSVCRT.dll
+ 0004:000001c4       \177MSVCRT_NULL_THUNK_DATA 004051c4     MSVCRT:MSVCRT.dll
+ 0004:000001c8       __imp__a_init_connection   004051c8     amos2:amos2.dll
+ 0004:000001cc       __imp__a_init_scan         004051cc     amos2:amos2.dll
+ 0004:000001d0       __imp__init_amos           004051d0     amos2:amos2.dll
+ 0004:000001d4       __imp__a_extimpl           004051d4     amos2:amos2.dll
+ 0004:000001d8       __imp__a_connect           004051d8     amos2:amos2.dll
+ 0004:000001dc       __imp__free_scan           004051dc     amos2:amos2.dll
+ 0004:000001e0       __imp__free_connection     004051e0     amos2:amos2.dll
+ 0004:000001e4       __imp__amos_toploop        004051e4     amos2:amos2.dll
+ 0004:000001e8       __imp__a_getdoubleelem     004051e8     amos2:amos2.dll
+ 0004:000001ec       __imp__topenv              004051ec     amos2:amos2.dll
+ 0004:000001f0       __imp__resetlabelp         004051f0     amos2:amos2.dll
+ 0004:000001f4       __imp__clearstack          004051f4     amos2:amos2.dll
+ 0004:000001f8       __imp____str__             004051f8     amos2:amos2.dll
+ 0004:000001fc       __imp__a_mapbag            004051fc     amos2:amos2.dll
+ 0004:00000200       __imp__resetfn             00405200     amos2:amos2.dll
+ 0004:00000204       __imp__a_round             00405204     amos2:amos2.dll
+ 0004:00000208       __imp__begin_image         00405208     amos2:amos2.dll
+ 0004:0000020c       __imp__getreal             0040520c     amos2:amos2.dll
+ 0004:00000210       __imp__lerror              00405210     amos2:amos2.dll
+ 0004:00000214       __imp__new_array           00405214     amos2:amos2.dll
+ 0004:00000218       __imp__release             00405218     amos2:amos2.dll
+ 0004:0000021c       __imp__new_real            0040521c     amos2:amos2.dll
+ 0004:00000220       __imp__a_seta              00405220     amos2:amos2.dll
+ 0004:00000224       __imp__a_result            00405224     amos2:amos2.dll
+ 0004:00000228       \177amos2_NULL_THUNK_DATA  00405228     amos2:amos2.dll
+
+ entry point at        0001:00001652
+
+ Static symbols
+
+
+FIXUPS: 2731 1e fffffd2e 5 1f 5 19 fffff6e5 30 161 d8 1a d 51 fffff230
+FIXUPS: 1136 73 32 25c 20 1b 8c 29 d6 17 1c 38 116a d ffffffb2 ffffff2b
+FIXUPS: 26d6 f 33

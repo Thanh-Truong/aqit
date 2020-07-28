@@ -1,0 +1,27 @@
+ /*-*-sql-*-*************************************
+ * AMOS2
+ *
+ * Replace this to suit your SP configuration */
+/*List of available data disks */
+create function slasraw_disk(Number i)->Bag of Charstring as stored;
+/*Total number of disks*/
+create function slasraw_num_disks()->Number as stored;
+/*Data directory */
+create function slasraw_datadir()->Charstring as stored;
+
+/*Command to open a new terminal*/
+create function slasraw_openNewTerminal()->Charstring as stored; 
+
+/*Open slasraw in a new terminal*/
+create function slasraw_openNewTerminal(Charstring command)->Charstring 
+as "osascript -e \"tell application \\\"Terminal\\\" to do script \\\"cd $pwd; " 
+   + command + " \\\"\" > /dev/null";   
+
+/*Command to open a new tab*/
+create function slasraw_openNewTab()->Charstring as stored;
+
+create function slasraw_openNewTab(Charstring command)->Charstring
+as "osascript -e 'tell application \"Terminal\" to activate' -e 'tell application \"System Events\" to tell process \"Terminal\" to keystroke \"t\" using command down'"
+   +  " -e 'do script \"cd $pwd;\"" 
+   + " in front window' -e 'end tell' > /dev/null";    
+     

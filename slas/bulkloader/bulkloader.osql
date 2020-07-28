@@ -1,0 +1,43 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: bulkloader.osql,v $
+ * $Revision: 1.2 $ $Date: 2013/11/13 17:39:57 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Bulk loader
+ *
+ ****************************************************************************
+ * $Log: bulkloader.osql,v $
+ * Revision 1.2  2013/11/13 17:39:57  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.4  2012/09/19 14:55:35  thatr500
+ * more reliable scenario to bulk load Hägglunds data
+ *
+ * Revision 1.3  2012/09/14 09:45:10  thatr500
+ * Run as stand alone Amos or a peer (node)
+ *
+ * Revision 1.2  2012/09/12 14:54:50  thatr500
+ * Added code to report arriving files to LogFile table.
+ *
+ * Revision 1.1  2012/09/11 07:25:53  thatr500
+ * Bulk loader that waits for log event stream and bulk loads to RDBMS
+ *
+ * Revision 1.1  2006/02/12 20:01:08  torer
+ * Folder AmosNT/headers contains CVS header templates
+ *
+ ****************************************************************************/
+/* Watching a target directory*/
+create logdirectory (name,folder, timeout, startseq) instances ('d1b','D:\\Generated_Machine_Data\\Hagglund\\', 15, 575);
+
+create function extractLog() -> bag of Vector 
+ as for each logevent e where e in logeventstream(dirnamed('d1b'))
+  return  {round(real(sysTimestamp(logfile(e)))), timeval(timestamp(e)),variable(e)
+	/*,t_offset(e)*/
+	,value(e)};
+
+/*A new coming log file will be extracted for bulk loader*/
+format_and_bulk(remove_null(extractLog()), "logdata", FALSE);
+

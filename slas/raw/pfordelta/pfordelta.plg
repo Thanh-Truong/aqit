@@ -1,0 +1,50 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: pfordelta - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\Users\thanh\AppData\Local\Temp\RSPB706.tmp" with contents
+[
+/nologo /MLd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /Fp"Debug/pfordelta.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
+"C:\AmosNT\aqit\slas\raw\pfordelta\coding_policy.c"
+"C:\AmosNT\aqit\slas\raw\pfordelta\howtouse.c"
+"C:\AmosNT\aqit\slas\raw\pfordelta\pack.c"
+"C:\AmosNT\aqit\slas\raw\pfordelta\pfordelta.c"
+"C:\AmosNT\aqit\slas\raw\pfordelta\s16.c"
+"C:\AmosNT\aqit\slas\raw\pfordelta\unpack.c"
+]
+Creating command line "cl.exe @C:\Users\thanh\AppData\Local\Temp\RSPB706.tmp" 
+Creating temporary file "C:\Users\thanh\AppData\Local\Temp\RSPB717.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:yes /pdb:"Debug/pfordelta.pdb" /debug /machine:I386 /out:"Debug/pfordelta.exe" /pdbtype:sept 
+.\Debug\coding_policy.obj
+.\Debug\howtouse.obj
+.\Debug\pack.obj
+.\Debug\pfordelta.obj
+.\Debug\s16.obj
+.\Debug\unpack.obj
+]
+Creating command line "link.exe @C:\Users\thanh\AppData\Local\Temp\RSPB717.tmp"
+<h3>Output Window</h3>
+Compiling...
+coding_policy.c
+howtouse.c
+c:\amosnt\aqit\slas\raw\pfordelta\howtouse.c(54) : warning C4047: '=' : 'unsigned int ' differs in levels of indirection from 'void *'
+pack.c
+pfordelta.c
+c:\amosnt\aqit\slas\raw\pfordelta\pfordelta.c(90) : warning C4305: 'initializing' : truncation from 'const double ' to 'float '
+s16.c
+c:\amosnt\aqit\slas\raw\pfordelta\s16.c(124) : warning C4018: '<' : signed/unsigned mismatch
+unpack.c
+Linking...
+
+
+
+<h3>Results</h3>
+pfordelta.exe - 0 error(s), 3 warning(s)
+</pre>
+</body>
+</html>

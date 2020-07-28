@@ -1,0 +1,41 @@
+ /*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: test-spawn-kill-metadataNode.osq,v $
+ * $Revision: 1.29 $ $Date: 2012/06/18 19:29:14 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Testing basic spawn and kill metadata nodes
+ *
+ ****************************************************************************
+ * $Log: test-spawn-kill-metadataNode.osql,v $
+ ****************************************************************************/
+create function spawn_kill_metadataNode(Charstring datapath)->Boolean as
+begin    
+  declare SlasRawNode node, Winstats wstat, Number state, 
+          Charstring filename;
+  set node = raw_spawn_node("MetadataBuilder");
+  for each Number i where i in iota(1, 100) 
+  begin 
+      set wstat = make_winstats(i);
+      set state = raw_send_to_node(node, wstat);
+      if (mod(i, 10) = 0 and i > 9) then 
+         raw_save_receiver(port(node), 
+	         concat(concat(datapath, stringify(i)), '_meta.dmp'));
+  end;
+  /*Kill the last node*/
+  raw_quit_receiver(port(node));
+end;  
+
+register("me");
+spawn_kill_metadataNode("../raw/data/");
+
+raw_unregister_me();
+
+lisp;
+;;(socket-send '(quit) (open-nameserver-socket)) ;; kill the peer
+;;(sleep 0.5) ;; Make sure message sent 
+
+:osql
+quit;  

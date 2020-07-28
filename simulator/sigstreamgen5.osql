@@ -1,0 +1,155 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: sigstreamgen5.osql,v $
+ * $Revision: 1.1 $ $Date: 2012/10/24 08:02:41 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Time sequence generator(4)
+ *
+ ****************************************************************************
+ * $Log: sigstreamgen5.osql,v $
+ * Revision 1.1  2012/10/24 08:02:41  thatr500
+ * *** empty log message ***
+ *
+ *
+ ****************************************************************************/
+load_lisp('sigstreamgen.lsp');
+
+/*Generate incremental number given its bound and step*/
+create function tstream(Vector of Number cv   /* Model that describes the shape of one cycle*/
+                        ,Number cycles        /* Number of cycles*/
+                        ,Number abpercent     /* Anormalities percentage*/  
+                        ,Number cyclefluct    /* Rough curve */
+                        ,Number abduration    /* Abnormality duration=number of cycles it lasts*/
+                        ,Number thresold
+                        ,Number expectedval 
+                        )-> Bag of Vector of Number  
+as 
+begin 
+   declare Number t, 
+           Number Ft,
+           Number e,
+           Number c, Number clength,
+           Number abstride, Number disturb, Number startab, Number endab,
+           Number direction, Number slope, Number interval;
+
+
+   set clength = dim(cv);    
+   set c = 0;   
+   set abstride = 1/abpercent;
+   set direction = 1;
+   set interval=0.1;
+   while (c < cycles)
+   do  
+       /*Wheter or not abnormalitiy happens in this cycle*/
+       if (mod(c, (abstride-1))=0 and startab= -1) then 
+       begin 
+           set startab = c;  
+           set endab = c + abduration;
+           if (direction = 1) then set direction = -1 else set direction = 1;
+       end
+       else 
+           set startab = -1;
+
+       set e = 0; 
+       while (e < clength) /*Loop through number of events in a cycle*/ 
+       do 
+          if (e <= clength /2) then set slope  = 2*e/clength 
+          else set slope  = 2*(clength - e)/clength;
+
+          if (startab !=-1 and startab <= c and c <= endab) then 
+              set disturb = direction*(frandom(2) + thresold)
+          else set disturb = 0;   
+
+          set t =   (e + (c * clength) + 1)*interval;
+          if (disturb=0) then 
+	    set Ft =  cv[e] + frandom((0- cyclefluct), cyclefluct)   
+          else
+            set Ft =  expectedval + frandom((0- cyclefluct), cyclefluct) + slope*disturb; 
+          set Ft = ceiling(Ft);  
+          return (select {t, Ft}); /*Emit the result*/
+	  set e = e + 1;    
+       end while;   
+       set c = c + 1;
+   end while;       
+end;
+
+/*-----------------------------------------------------------------------------
+MODELS
+http://en.wikipedia.org/wiki/Sine_wave
+-----------------------------------------------------------------------------*/
+/*
++ amplitude - the peak deviation of the function from zero
++ frequency - the ordinary frequency, is the number of oscillations 
+(cycles) that occur each second of time  
++ time
++ expected value
+
+y(t) = amplitude*sin(2*pi*frequency*t);
+y(t) = amplitude*sin(2*pi*(num/cl)*t);
+*/
+create function model3(Number amplitude, 
+                       Number numpeak,
+                       Number cl,
+                       Number expectedvalue)->Bag of Number
+  as roundto(amplitude *
+             sin(2*pi()*
+                       (numpeak/cl)*
+                       iota(0,cl)),4) + expectedvalue;
+
+set :vmodel = model3(5.0, /*amplitude*/
+                     1,         /*number of peak in a cycle*/ 
+                     60,        /*length of cycle*/
+                     20.0)      /*expected value*/
+                     ;
+/*so temperature varies in between
+[expected value + amplitude, expected value + amplitude]*/
+
+set :v = tstream(vectorof(:vmodel),/* Model that describes the shape of one cycle*/
+                           100,    /* Number of cycles*/
+                           0.05,    /* Anormalities percentage*/  
+                           0.05,   /* Fluctuation to make curve rough */
+                           1,      /* Abnormality duration say 1 per cycle (1 up , 1 down)*/    
+                           15.0,    /* thresold*/  /* Abnormality heigh = amplitude + thresold */
+                           20.0);
+
+write_csv(:v, "Timeseries.csv", ";");
+
+
+
+create function generateData(Charstring filename, Number size, Number i)->Boolean
+as begin 
+ declare Bag of Vector r, Bag of Vector v, Bag of Number model,
+         Number clength, Number interval, Number base;
+ 
+ set clength = 60;
+ set interval= 0.1;
+ set model =  model3(5.0,         /*amplitude*/
+                     1,         /*number of peak in a cycle*/ 
+                     clength,        /*length of cycle*/
+                     20.0)        /*expected value*/
+                     ;
+
+ set v = tstream(vectorof(model),/* Model that describes the shape of one cycle*/
+                           size,    /* Number of cycles*/
+                           0.05,    /* Anormalities percentage*/  
+                           0.05,   /* Fluctuation to make curve rough */
+                           1,      /* Abnormality duration say 1 per cycle (1 up , 1 down)*/    
+                           15.0,    /* thresold*/  /* Abnormality heigh = amplitude + thresold */
+                           20.0);
+
+ set base = clength*size*(i-1)*interval;
+ if (i >1) then set base = base + 10;
+
+ set r = ( select { mod(floor(t*10), 101), /*equipment ID*/
+                    t + base, /*Time*/  
+                    'TEMP',
+                   Ft} 
+           from Number t, Number Ft, Bag of Vector of Number b
+           where {t, Ft} in b and 
+                     b = v);
+
+ write_csv(r, filename + i + ".csv", ";");
+end;

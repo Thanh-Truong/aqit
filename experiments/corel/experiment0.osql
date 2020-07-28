@@ -1,0 +1,135 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2011 Thanh Truong, UDBL
+ * $RCSfile: experiment0.osql,v $
+ * $Revision: 1.2 $ $Date: 2012/02/24 13:40:35 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Experiments based on DBII lecture given at Uppsala Universitet
+ * with real dataset from Corel Image collection
+ ****************************************************************************
+ * $Log: experiment0.osql,v $
+ * Revision 1.2  2012/02/24 13:40:35  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2012/01/12 15:22:48  thatr500
+ * - added experiments/corel: real image features
+ * - added experiments/sqlserver
+ *
+ *
+ ****************************************************************************/
+
+/*Return rows from a file*/
+create function read_data(Charstring filename) -> Vector of Number row
+as read_ntuples(filename);
+
+/*-----------------------------------------------------------------------------
+* Schema
+*-----------------------------------------------------------------------------*/
+/*Define data type Picture1*/
+create type Picture;
+
+/*Each picture has a caption*/
+create function caption(Picture p)->Charstring cap as stored;
+
+create_index("caption","cap","HASH","multiple");
+
+
+/*Assume each picture is represented as a vector of pixels as number*/
+/*Make two tables whose sizes are different*/
+create function storedFeatures1(Picture p)->Vector of Number fv as stored;
+create function storedFeatures2(Picture p)->Vector of Number fv as stored;
+
+create_index("storedFeatures1","fv","XTREE","multiple");
+create_index("storedFeatures2","fv","XTREE","multiple");
+
+create function similarity(Picture p, Picture q)->Number 
+as 1 / (1 + euclid(storedFeatures1(p), storedFeatures2(q)));
+
+
+create function add_featuresvector1(Vector row)->Picture p
+as
+begin
+  create Picture(caption,  storedFeatures1) 
+         instances p (project(row,{0}), project(row,vectorof(iota(1, 9))));
+  return p;
+end;
+
+create function add_featuresvector2(Vector row)->Picture p
+as
+begin
+  create Picture(caption,  storedFeatures2) 
+         instances p ("Picture"+ stringify(row[0]), project(row,vectorof(iota(1, 9))));
+  return p;
+end;
+
+
+/*
+
+
+*/
+
+
+/*-----------------------------------------------------------------------------
+* Populate Corel image feature vectors into storedFeatures1, storeFeatures2
+  with the ratio 1 / 2
+add_featuresvector1(read_data("ColorMoments.txt1"));
+
+add_featuresvector2(read_data("ColorMoments.txt2"));
+
+add_featuresvector1(read_data("ColorMoments.txt3"));
+
+add_featuresvector2(read_data("ColorMoments.txt4"));
+
+add_featuresvector1(read_data("ColorMoments.txt5"));
+
+add_featuresvector2(read_data("ColorMoments.txt6"));
+
+add_featuresvector1(read_data("ColorMoments.txt7"));
+
+add_featuresvector2(read_data("ColorMoments.txt8"));
+
+add_featuresvector1(read_data("ColorMoments.txt9"));
+
+add_featuresvector2(read_data("ColorMoments.txt10"));
+pc("*select*");
+*-----------------------------------------------------------------------------*/
+
+
+
+
+/*-----------------------------------------------------------------------------
+* Queries
+*-----------------------------------------------------------------------------*/
+
+
+
+lisp;
+(setq *enable-aqit* t)
+(setq *print-aqit* nil)
+(setq *print-index-rewrite* nil)
+:osql
+
+create function q()-> Object 
+as
+select p2 
+from   Picture p1, Picture p2,
+       Vector of Number v1,     /*features of picture 1*/
+       Vector of Number v2,     /*features of picture 2*/
+       Number d,                /*distance computation */
+       Number s 	        /*similarity*/
+where  caption(p1) = "Picture01"
+and    storedFeatures1(p1) = v1
+and    storedFeatures2(p2) = v2
+and    d = euclid(v1, v2)
+and    s = 1 / (1+d)
+and    s > 0.9
+and    s < 0.95;
+
+
+
+
+
+
+

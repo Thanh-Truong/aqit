@@ -1,0 +1,36 @@
+/*C:\Users\thanh>sqlcmd
+1> use aqit;
+2> go
+Changed database context to 'aqit'.
+1> set showplan_text on
+2> go
+1> select x from tblbtree where x < 100 and x > 20;
+2> go
+StmtText
+StmtText
+  |--Index Seek(OBJECT:([aqit].[dbo].[tblbtree].[IX_tbltree]), 
+           SEEK:([aqit].[dbo].[tblbtree].[x] > CONVERT_IMPLICIT(int,[@2],0) 
+                  AND [aqit].[dbo].[tblbtree].[x] < CONVERT_IMPLICIT(int,[@1],0)) ORDERED FORWARD)
+
+(1 rows affected)
+1> select x from tblbtree where x+ 1 < 100 and x + 1> 20;
+2> go
+StmtText
+  |--Table Scan(OBJECT:([aqit].[dbo].[tblbtree]), 
+           WHERE:(([aqit].[dbo].[tblbtree].[x]+[@1])<CONVERT_IMPLICIT(int,[@2],0) 
+                   AND ([aqit].[dbo].[tblbtree].[x]+[@3])>CONVERT_IMPLICIT(int,[@4],0)))
+(1 rows affected)
+*/
+
+
+/*-----------------------------------------
+MS SQL Server - Index Scan vs Index Seek
+-------------------------------------------
+Index Scan happens when SQL Server has to scan multiple pages to find range of 
+rows which satisfy search predicates. SQL Server reads the entire index to 
+looking for matches. The time it takes is propotional to the size of the table
+
+
+Index Seek happens when SQL Server can find a single index row matching 
+search predicates.The time taken to perform an index seek is constant 
+regardless of the size of the table.*/

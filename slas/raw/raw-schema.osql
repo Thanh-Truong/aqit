@@ -1,0 +1,57 @@
+ /*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: AMOSQL,v $
+ * $Revision: 1.1 $ $Date: 2006/02/12 20:01:08 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Schema for SLAS-RAW
+ *
+ ****************************************************************************
+ * $Log: AMOSQL,v $
+ *
+ ****************************************************************************/
+
+/***************************************************************************
+  DATA SCHEMA 
+ ***************************************************************************/
+create type SlasRawDataSource;  
+
+/* The type DataStream are continuously growing streams of data of different
+   kinds */
+create type DataStream under SlasRawDataSource
+       properties (streamID Charstring, 
+                   description Charstring);  
+
+create type RawLogFile properties 
+   (filename     Charstring); 
+
+create type RawMetaFile properties 
+   (filename     Charstring,
+    startTime	 Number,
+    endTime	 Number,
+    cols         Number /*Number of columns*/
+   );  
+
+/* The type LogDataStream is stream from raw log files,
+   which were logged on data stream of  measurements from equipment-in-use, 
+   usually provided by sensors on equipment, e.g temperature readings, 
+   pressure readings, power consumption */
+create type LogDataStream under DataStream properties
+   (
+    generator           Stream,
+    mappedRelation      Charstring,	  /*Mapped relation name	  */
+    columnNames          Vector of Charstring,
+    startTime           Number,	  /*Start time of stream recording*/
+    endTime             Number,	  /*End time of stream recording  */
+    cols       	        Number,	  /*How many colums in stream     */	
+    indexedPos          Vector of Number,	  /*Which columns should have 
+    		 		   secondary indexes		  */
+    baseWindowSize      Number,	  /*Base window size*/	
+    numChunks		Number,  /*Number of chunks*/
+   /*It consists of several chunks, each has a datafile 
+   associated with a metafile*/
+   chunks               Bag of (RawLogFile datafiles, RawMetaFile metafiles)
+   );    
+

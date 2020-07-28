@@ -1,0 +1,191 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: queries-oo.osql,v $
+ * $Revision: 1.1 $ $Date: 2013/01/04 09:14:16 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Benchmark queries in OO view of tables
+ *
+ ****************************************************************************
+ * $Log: queries-oo.osql,v $
+ * Revision 1.1  2013/01/04 09:14:16  thatr500
+ * Write benchmark queries in either AmosQL or SQL language
+ *
+ *
+ ****************************************************************************/
+< 'importschema.osql';
+
+create function q1()-> Bag of ( Charstring, Real  )
+/*1.When and on what equipments was sensor "REG_407" out of bounds?*/
+as
+ select name(eq), ts(r) 
+ from reg407@aqit r, sensor@aqit s, equipment@aqit eq 
+ where /*r joins s*/ 
+      e(r) = e(s) and name(s) = 'REG408' and
+        /*join equipment*/
+       e(eq) = e(r) and
+       /*out of bound*/
+      abs(mv(r)-ev(s))>11;
+
+
+create function q2()-> Bag of ( Charstring, Real )
+/*
+2.When and on what equipments were both sensor "REG_407" and "REG_408" out of bounds?
+*/
+as
+ select name(eq), ts(r2) 
+ from reg407@aqit r1, reg408@aqit r2, sensor@aqit s1 , sensor@aqit s2,equipment@aqit eq 
+ where /*r1 joins s1*/ 
+      e(r1) = e(s1) and name(s1) = 'REG407' and
+      /*r2 joins s2*/
+       e(r2) = e(s2) and name(s2) = 'REG408' and
+       /*same equipment, same time*/
+       e(r1) = e(r2) and ts(r1) = ts(r2) and
+       /*join equipment*/
+       e(eq) = e(r1) and
+       /*out of bound*/
+       mv(r1) - ev(s1)> 300 and
+       abs(mv(r2)-ev(s2))>11;
+
+
+create function q3()-> Bag of (Charstring, Real )
+/*
+3.When and on what equipments were either sensor "REG_407" or "REG_408" out of bounds?
+*/
+as 
+ select name(eq), ts(r2) 
+ from reg407@aqit r1, reg408@aqit r2, sensor@aqit s1 , sensor@aqit s2,equipment@aqit eq 
+ where /*r1 joins s1*/ 
+      e(r1) = e(s1) and name(s1) = 'REG407' and
+      /*r2 joins s2*/
+       e(r2) = e(s2) and name(s2) = 'REG408' and
+       /*same equipment, same time*/
+       e(r1) = e(r2) and ts(r1) = ts(r2) and
+       /*join equipment*/
+       e(eq) = e(r1) and
+       /*out of bound*/
+       (mv(r1) - ev(s1)> 300 or  abs(mv(r2)-ev(s2))>11);
+
+
+create function q4()-> Bag of (Real )
+/*4.When was REG_408 out of bounds on equipment "E_1"?*/
+as
+ select ts(r) 
+ from reg408@aqit r, sensor@aqit s, equipment@aqit eq 
+ where /*r1 joins s1*/ 
+      e(r) = e(s) and name(s) = 'REG408' and
+       /*join equipment*/
+       e(eq) = e(r) and name(eq) = "E_1"
+       /*out of bound*/ and
+       abs(mv(r)-ev(s))>11;
+
+create function q5()-> Bag of (Real )
+/*5.When was REG_408 out of bounds both on equipment "E_1" and "E_2"?*/
+as
+    select ts(r1) 
+    from reg408@aqit r1, sensor@aqit s1, equipment@aqit eq1,
+         reg408@aqit r2, sensor@aqit s2, equipment@aqit eq2
+    where /*on equipment E_1*/ 
+          e(r1) = e(s1) and name(s1) = 'REG408' and 
+          e(eq1) = e(r1) and name(eq1) = "E_1" and
+          abs(mv(r1)-ev(s1))>11 and
+           
+          ts(r1) = ts(r2) and  
+	  /*on equipment E_2*/ 
+          e(r2) = e(s2) and name(s2) = 'REG408' and 
+          e(eq2) = e(r2) and name(eq2) = "E_2" and
+          abs(mv(r2)-ev(s2))>11;
+
+
+
+
+
+create function q5()-> Bag of (Real )
+/*5.When was REG_408 out of bounds both on equipment "E_1" and "E_2"?*/
+as
+    select ts(r1) 
+    from reg408_aqit r1, sensor_aqit s1, equipment_aqit eq1,
+         reg408_aqit r2, sensor_aqit s2, equipment_aqit eq2
+    where /*on equipment E_1*/ 
+          e(r1) = e(s1) and name(s1) = 'REG408' and 
+          e(eq1) = e(r1) and name(eq1) = "E_1"  and       
+	  /*on equipment E_2*/ 
+          e(r2) = e(s2) and name(s2) = 'REG408' and 
+          e(eq2) = e(r2) and name(eq2) = "E_2"  and
+          e(r1) = e(r2) and ts(r1) = ts(r2)     and
+  
+          abs(mv(r1) -ev(s1))>11 and 
+          abs(mv(r2) -ev(s2))>11; 
+
+
+
+create function q6()-> Bag of (Real, Real, Real)
+/*6.When was REG_408 out of bounds in a list of equipments ("E_1" , "E_2")?*/
+as
+    select ts(r1), mv(r1), ev(s1)
+    from reg408_aqit r1, sensor_aqit s1, equipment_aqit eq1
+    where /*on equipment E_1*/ 
+          e(r1) = e(s1) and name(s1) = 'REG408' and 
+          e(r1) = e(eq1) and name(eq1) in ('E_1', 'E_2')  and       
+          abs(mv(r1) - ev(s1)) >11;
+          
+create function q7()-> Bag of (Charstring, Real )
+/*
+7.	When an on what equipments were the sum of deviations of sensor A and B larger that a threshold?
+*/
+as 
+ select name(eq), ts(r2) 
+ from reg407@aqit r1, reg408@aqit r2, sensor@aqit s1 , sensor@aqit s2,equipment@aqit eq 
+ where /*r1 joins s1*/ 
+      e(r1) = e(s1) and name(s1) = 'REG407' and
+      /*r2 joins s2*/
+       e(r2) = e(s2) and name(s2) = 'REG408' and
+       /*same equipment, same time*/
+       e(r1) = e(r2) and ts(r1) = ts(r2) and
+       /*join equipment*/
+       e(eq) = e(r1) and
+       /*out of bound*/
+       mv(r1) - ev(s1) +  abs(mv(r2)-ev(s2))> 311;
+
+
+create function q8()-> Bag of (Charstring, Real )
+/*
+8.	When and on what equipments were the average of the (relative) deviations of sensor A, B, and C larger than a threshold?
+*/
+as 
+ select name(eq), ts(r2) 
+ from reg407@aqit r1, reg408@aqit r2, sensor@aqit s1 , sensor@aqit s2,equipment@aqit eq 
+ where /*r1 joins s1*/ 
+      e(r1) = e(s1) and name(s1) = 'REG407' and
+      /*r2 joins s2*/
+       e(r2) = e(s2) and name(s2) = 'REG408' and
+       /*same equipment, same time*/
+       e(r1) = e(r2) and ts(r1) = ts(r2) and
+       /*join equipment*/
+       e(eq) = e(r1) and
+       /*out of bound*/
+       (mv(r1) - ev(s1) + abs(mv(r2)-ev(s2)))/2> 155.5;
+
+
+create function q10()-> Bag of (Charstring, Real )
+/*10.	When and on what equipments did sensor A and sensor B fail 
+within 5 seconds of each other?*/
+as 
+ select name(eq), ts(r2) 
+ from reg407@aqit r1, reg408@aqit r2, sensor@aqit s1 , sensor@aqit s2,equipment@aqit eq 
+ where /*r1 joins s1*/ 
+      e(r1) = e(s1) and name(s1) = 'REG407' and
+      /*r2 joins s2*/
+       e(r2) = e(s2) and name(s2) = 'REG408' and
+       /*same equipment*/
+       e(r1) = e(r2)             and
+       /*join equipment*/
+       e(eq) = e(r1)             and
+       /*out of bound*/
+       mv(r1) - ev(s1) > 300      and
+       abs(mv(r2)-ev(s2))> 11    and
+       ts(r1)- ts(r2) < 5; 
+
+

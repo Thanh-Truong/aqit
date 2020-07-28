@@ -1,0 +1,123 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: AMOSQL,v $
+ * $Revision: 1.1 $ $Date: 2006/02/12 20:01:08 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Query Engine coordinator
+ *
+ ****************************************************************************
+ * $Log: AMOSQL,v $
+ *
+ ***************************************************************************/
+/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+/*Commnunication
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*/
+create function slasraw_makeWindows(Stream s, LogDataStream lds)-> 
+       Stream of Window
+ as streamof(twindowize0(s, #'logts', 
+    			    baseWindowSize(lds), baseWindowSize(lds),
+			    -1, #'falsefn', #'truefn')); 
+  
+/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+/* Round robin disks
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*/
+create function slasraw_rrbin_datapath()->Charstring
+ as slasraw:round_robin_disk();
+
+create function slasraw_current_datapath()->Charstring
+ as slasraw:round_robin_disk();
+
+/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+/* Log data file and return window statistic
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*/
+
+/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+/*Begin writing a chunk
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*/
+create function slasraw_beginChunk(Window w, LogDataStream lds,
+        Charstring path)->Charstring filename
+as begin
+   declare Charstring fname, RawLogFile rf, RawMetaFile mf;
+   set fname = path + "/" + mappedRelation(lds) + stringify(numChunks(lds));    
+
+   create RawLogFile (filename) instances rf (fname + ".bin");
+   create RawMetaFile (filename) instances mf (fname + ".dmp");
+   
+   set startTime(mf) = logts(cast(w[0] as Vector of Number)); 
+   set cols(mf) = cols(lds);
+   add chunks(lds) = (rf, mf);
+   return fname;
+end;    
+
+/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+/*End writing a chunk
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*/
+create function slasraw_endChunk(Number endTime, LogDataStream lds)->
+       Boolean as
+begin 
+     declare RawLogFile rf, RawMetaFile mf;     
+     select a, b into rf, mf from RawLogFile a, RawMetaFile  b 
+     where (a, b) in last(chunks(lds)); 
+
+     /*Updates end time of the chunk*/
+     set endTime(mf) = endTime;
+     set numChunks(lds) = numChunks(lds) + 1;
+     return TRUE;          
+end;
+/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+/*Log a stream
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*/
+create function slasraw:log(Stream s, LogDataStream lds)->Boolean as
+       /*Log a stream s as log data stream lds*/
+begin    
+  declare SlasRawNode mtbuilder, Winstats wstat, Number state,
+          Charstring filename, Number newChunk, Number endTime, Number startTime;    
+  set newChunk = 1;
+  /*We can register automattically a process to a peer here. But better not*/
+  create SlasRawNode(state, port) 
+     	    instances mtbuilder (1, raw_spawn_receiver('s', "MetadataBuilder"));
+
+  for each Window w where w in slasraw_makeWindows(s, lds)
+  begin 
+  	if (newChunk = 1) then 
+	begin 
+	  set filename = slasraw_beginChunk(w, lds, 
+	      	       	slasraw_rrbin_datapath());	  
+	  set newChunk = 0;
+	end; 
+	set endTime =logts(cast(w[window_count(w) - 1] as Vector of Number)); 
+	set startTime =logts(cast(w[0] as Vector of Number)); 
+	/*Stores log data with round robin disk and 
+	    gets back windows statistic*/
+   	set wstat = slasraw:logdata(w, indexedpos(lds) [0], 
+	    	    cols(lds), filename + ".bin");
+	set wstat = setstats(wstat, "START", startTime);
+	/*Sends statistic to meta mtbuilder*/
+	set state = raw_send_winstats(port(mtbuilder), wstat);
+	if (state = -1) then print("The meta-data builder will overflow because the state is " + state); 
+	/*If the mtbuilder is overflow*/
+	if (state = -1) then
+	begin
+	   slasraw_endChunk(endTime, lds);
+	   /*Saves the meta data*/
+           raw_save_receiver(port(mtbuilder), filename + ".dmp");
+	   set newChunk = 1;
+      	 end;
+  end;     
+
+  /*End of stream ! so save the mtbuilder even if it is not full yet*/
+  if (state != -1) then 
+  begin
+	slasraw_endChunk(endTime, lds);
+	/*Saves the meta data*/
+     	raw_save_receiver(port(mtbuilder), filename + ".dmp");
+	raw_quit_receiver(port(mtbuilder));
+	/*kill_all_peers();*/
+  end;
+ /*Wait a sec ! I do not want to be a peer no more
+ raw_unregister_me();*/
+end;     
+

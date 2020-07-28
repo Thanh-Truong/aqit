@@ -1,0 +1,164 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) <year> <author>, UDBL
+ * $RCSfile: write_logevents.osql,v $
+ * $Revision: 1.5 $ $Date: 2013/06/12 12:58:44 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: <description>
+ *
+ ****************************************************************************
+ * $Log: write_logevents.osql,v $
+ * Revision 1.5  2013/06/12 12:58:44  thatr500
+ * Changed database schema for logged data streams (machine measurements)
+ *
+ * Revision 1.4  2013/01/11 16:49:12  thatr500
+ * For arriving log events
+ * -  keep the most recent events (of given sensor, machine)  in the main memory.
+ * - automatically calculate the end time of events.
+ * - and flush to temporay ( CSV) files / database only if the events was finished.
+ *
+ * Revision 1.2  2012/10/31 10:41:52  thatr500
+ * Store measurement of each variable per CSV file ( table)
+ *
+ * Revision 1.1  2006/02/12 20:01:08  torer
+ * Folder AmosNT/headers contains CVS header templates
+ *
+ ****************************************************************************/
+logging off;
+
+load_lisp("misc.lsp");
+
+<'model.osql';
+
+create function logEvents(Charstring logfile)-> Bag of (Real tsoffset, Charstring var, Real val) as
+ select tsoffset, 
+        var, 
+        val 
+ from  Vector ev 
+ where ev in read_ntuples(logfile) and
+       ev[0]="L" and
+       tsoffset = ev[4]  and 
+       var = ev[2] and 
+       val = ev[6]; 
+
+create function rename_variable(Charstring var, Boolean rename)->Charstring
+ as if(rename) then return "A" + var else return var;
+
+
+create function maxnum()->Number as stored;
+set maxnum()=4000;
+
+
+create function logStartTime(Charstring logfile)-> (Charstring, Charstring)
+as 
+ select ev[4], ev[5] from Vector ev 
+where ev in read_ntuples(logfile) and ev[0]="H" and ev[2]= "LogStartTime";
+
+
+
+create function processlogevent(Real ts, Charstring var, Real val,
+	 Number numfile)-> Boolean as
+	/*Process one log event*/
+begin
+    declare Charstring varname, Number varid, 
+            Charstring machinename, Number machineid, Real bt, Real mv;
+    /*----Variable------*/
+    /*Rename variables at every second files
+    if (mod (numfile, 2)=0) then set varname = "A" + var
+    else set varname = var;*/
+    set varname=var;
+
+    select variableid(cast(varname as Charstring)) into varid;
+    if (varid = NIL) then  
+    begin      
+     set varid = add_newvariable(varname);
+    end;
+   
+    /*Machine table*/
+    if (floor(div(numfile, maxnum())) > current_machine_id() - 1) then 
+    begin /*new machine*/
+       set current_machine_id() = current_machine_id() + 1;
+       select  current_machine_id() into machineid;
+       select  "M_" + current_machine_id() into machinename;
+       slas_write_tofile("machine.csv", stringify(machineid) + ";" + machinename);
+    end
+    else
+       select  current_machine_id() into machineid;       
+
+
+    /*Sensor table*/
+    if notany(select s from Number s where s in sensor(machineid) and s=varid) 
+    then begin
+         add sensor(machineid)=varid;
+         slas_write_tofile("sensor.csv",  
+	 stringify(machineid) + ";" 
+	+ stringify(varid) + ";" 
+	+ varname /*sm*/ + ";" + varname /*mc*/);
+    end;
+
+    /*Measures value table*/
+    if notany(openCSVtoStoreMV(varid)) then 
+    begin 
+       slas_openwritefile("measures" + varname + ".csv");
+       add openCSVtoStoreMV(varid) = TRUE;
+    end;
+
+    /*Keep the most recent measurement values*/
+    if notany(currentMV(varid, machineid)) then 
+    begin 
+	add currentMV(varid, machineid) = {ts, val};
+    end
+    else 
+    begin
+        select v[0], v[1] into bt, mv from Vector of Real v  where v = currentMV(varid, machineid);
+        if (bt < ts and mv != val) then
+        begin
+	    slas_write_tofile("measures" + varname + ".csv", 
+			     stringify(machineid) + ";" + /*m*/
+			     varid +                      /*s*/
+			     bt + ";" + (ts - 0.1) + ";" + /*bt, et*/
+                             stringify(val));              /*mv*/
+           set currentMV(varid, machineid) = {ts, val};
+        end; 
+    end;	 
+end;
+ 
+create function normalizelogfiles(Charstring dirname)->Boolean as
+begin
+ declare Integer c, Real lstarttime;
+ slas_openwritefile("machine.csv");
+ slas_openwritefile("sensor.csv");
+ set c = 0;
+
+ for each Charstring sourcefile where sourcefile in dir(dirname, "*.CSV")
+ begin
+        set c = c + 1;
+	select real(timevalize(p1+ " " + p2)) into lstarttime from Charstring p1, Charstring p2 where (p1, p2) in logStartTime(sourcefile);
+
+	select  processlogevent(lstarttime + tsoffset, var, val, c)
+ 	from    Real tsoffset, Charstring var, Real val
+ 	where   (tsoffset, var, val) in logEvents(pwd()+ "/" + dirname +"/"+sourcefile);
+ end;
+
+  /*Flush all remaining log events to files*/
+  select slas_write_tofile("measures" + vname + ".csv", stringify(eid) + ";" 
+                              + bt + ";" + ";"
+                              + stringify(mv))
+  from Real bt, Real mv, Number vid, Number eid, Charstring vname
+  where {vid, eid,{bt, mv}} in extent(#'currentMV') and
+        variableid(vname)=vid;
+  
+ slas_close_all_writefiles();
+end;
+
+ 
+/*--------------------------------------------------------------------*/
+create function singleTimeSeries(Charstring logfile)-> Boolean
+as 
+ select print(stringify(ev[0]) + ";" + stringify(ev[4]) + ";" + stringify(ev[6])) 
+ from  Vector ev
+ where ev in read_ntuples(logfile);
+
+

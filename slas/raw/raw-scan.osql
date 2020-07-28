@@ -1,0 +1,53 @@
+  /*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: AMOSQL,v $
+ * $Revision: 1.1 $ $Date: 2006/02/12 20:01:08 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: SCAN for SLAS-RAW
+ *
+ ****************************************************************************
+ * $Log: AMOSQL,v $
+ *
+ ****************************************************************************/
+
+/***************************************************************************
+ UTILITY
+***************************************************************************/
+create function read_value(Charstring meta_file,
+       	                   Charstring attribute)->Charstring
+value as 
+      /*Read key=value file*/
+      select value
+      from  Charstring value,
+            Vector sv, Charstring s, Vector line 
+      where {attribute, value} = sv     and
+      	    sv = string_explode(s, "=") and
+      	    s = line[0]                 and 
+      	    line in csv_file_tuples(meta_file);            
+
+/***************************************************************************
+ SCAN on RawLogFile
+***************************************************************************/
+create function openScanRawFile(Charstring filename, Charstring cols)-> Scan
+as foreign 'open-log-file-scanfn';
+
+create function closeScanRawFile(Scan s)-> Boolean
+as foreign 'close-log-file-scanfn';
+
+create function scanpool(RawLogFile rf)->Scan s as stored;  
+
+create function raw_open(RawLogFile rf, Number cols)->Scan s 
+as begin 
+   /*open s for readblogfile(datafile(rf), cols(rf));*/
+   set s = openScanRawFile(filename(rf), stringify(cols));
+   add scanpool(rf) = s;
+   return s;
+end;  
+
+create function raw_next(RawLogFile rf)->Object as next(scanpool(rf));
+
+create function raw_close(RawLogFile rf)->Boolean as 
+  closeScanRawFile(scanpool(rf));

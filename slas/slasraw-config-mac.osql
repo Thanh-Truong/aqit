@@ -1,0 +1,51 @@
+ /*-*-sql-*-*************************************
+ * AMOS2
+ *
+ * Replace this to suit your SP configuration */
+set dumpfile() = "slasraw.dmp";
+set sprocstart() = "lsproc2";
+
+set preprsh() = "/usr/bin/ssh -n";
+set sp_username("") = getenv("USER");
+set sp_start("") = "cd " + getenv("TMPDIR") + ";";
+set prepstartcmd("") = getenv("AMOS_HOME") + "/bin/slasraw.exe";
+set spstdout() = " >> PrepLog";
+set sppostfix() = " 2>&1 &";
+set prephome() = "";
+set cpus_per_host() = 4;
+
+/* coord is on the host which does mkdmp 
+set prepcoordhost() = gethostname();
+*/
+/* prephosts is going to be re-set if in queue system */
+set prephosts() = {"localhost"};
+
+/* Default config for queue system */
+porttimeout(10.0);
+
+/*List of available data disks */
+add slasraw_disk(1) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk1";
+add slasraw_disk(2) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk2";
+add slasraw_disk(3) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk3";
+add slasraw_disk(4) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk4";
+add slasraw_disk(5) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk5";
+add slasraw_disk(6) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk6";
+add slasraw_disk(7) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk7";
+add slasraw_disk(8) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk8";
+add slasraw_disk(9) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk9";
+add slasraw_disk(10) = getenv("AMOS_HOME") + "/slas/raw/data" + "/disk10";
+/*Number of disks in total*/
+set slasraw_num_disks() = count(select i from Number i, Charstring d where d in slasraw_disk(i));  
+
+/*Data directory */
+set slasraw_datadir() = ""; 
+
+/*Command to open a new terminal*/
+set slasraw_openNewTerminal() =  "osascript -e \"tell application \\\"Terminal\\\" to do script \\\"cd $pwd; clear\\\"\" > /dev/null";  
+
+/*Command to open a new tab*/
+set slasraw_openNewTab() = "osascript -e 'tell application \"Terminal\" to activate' -e 'tell application \"System Events\" to tell process \"Terminal\" to keystroke \"t\" using command down'";  
+
+       
+
+

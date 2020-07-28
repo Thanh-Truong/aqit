@@ -1,0 +1,70 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012  Thanh Truong, UDBL
+ * $RCSfile: experiment.osql,v $
+ * $Revision: 1.3 $ $Date: 2012/06/18 12:34:07 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Experiment
+ *
+ ****************************************************************************
+ * $Log: experiment.osql,v $
+ * Revision 1.3  2012/06/18 12:34:07  thatr500
+ * updated experiment script according to
+ *       \AmosNT\aqit\doc\examplesV1.txt -- meeting notes
+ *
+ * Revision 1.2  2012/04/27 14:15:28  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2012/04/18 07:57:32  thatr500
+ * Auto-run with different configurations
+ *
+ ****************************************************************************/
+/*Initialize connection*/
+<'connection.osql';
+
+import_table(aqit_jdbc(), "expData");/*mapped type for ExpData*/
+
+import_table(aqit_jdbc(), 'logdata');/*mapped type for LogData*/
+
+/*Add description about indexes on remote tables through cc function*/
+add_descr_index_cc('B-tree', #'logdata_aqit_cc->charstring.integer.real', 2);
+
+parteval("plus");
+parteval("times");
+parteval("get_machines");
+
+
+/*In SQL*/
+create function sql:logdata()->(Charstring time, Integer machine, Real powcon) as logdata_aqit_cc();
+
+create function sql:expdata()->(Integer machine, Real powcon) as expdata_aqit_cc();
+
+
+/*---------------------------------------------------------------
+Each machine has its own expecting power consumption
+
+Within the last 30 days, find machines whose power consumption 
+are different from an expecting thresold not more than 10 unit.
+
+
+It results in Index scan (full scan) over the entire IDX_LOG_PC
+==> SLOW
+----------------------------------------------------------------*/
+
+
+openwritefile('log_' + stringify(dim(get_machines())) + 'machine.txt', "a");
+print("Query 1 " + getdatabase());
+set :a=clock();
+
+count(sql("select L.time, L.PowCon, L.Machine
+           from LogData L, ExpData E
+           where L.Machine = E.Machine and
+           abs(L.PowCon - E.Powcon) > 2 and
+           E.Machine < 4 and
+           L.time >= '2000-01-01 01:01:00.000'"));
+
+print(clock()- :a);
+closewritefile();
+disconnect(aqit_jdbc());

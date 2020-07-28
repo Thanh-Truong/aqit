@@ -1,0 +1,182 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2011 Thanh Truong, UDBL
+ * $RCSfile: data-schema.osql,v $
+ * $Revision: 1.1 $ $Date: 2012/01/12 15:22:48 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Experiments for AQTI
+ *
+ ****************************************************************************
+ * $Log: data-schema.osql,v $
+ * Revision 1.1  2012/01/12 15:22:48  thatr500
+ * - added experiments/corel: real image features
+ * - added experiments/sqlserver
+ *
+ * Revision 1.2  2011/09/26 13:14:25  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2011/09/15 12:23:13  thatr500
+ * experimentation with real dataset ColorHistogram and ColorMoments
+ *
+ *
+ ****************************************************************************/
+register_exindextype('XT', 'C:xt', FALSE);
+
+/*****************************************************************************
+SCHEMA
+******************************************************************************/
+create function known_data(Number cid) -> Bag of <Vector of Number v> 
+   /* Function to store training data mappings between each class 
+      identifier its bag of value vectors */
+  as stored;
+
+/* For fast search among values of data function class_members: */
+create_index("known_data","v","MBTREE","multiple");
+
+create function normalized_known_data(Number cid) -> Bag of <Vector of Number v> 
+   /* Function to store training data mappings between each class 
+      identifier its bag of value vectors */
+  as stored;
+
+/* For fast search among values of data function class_members: */
+create_index("normalized_known_data","v","MBTREE","multiple");
+
+
+create function values_of_known_data()->Bag of Vector of Number
+  /* Function returning all vector values of the data stored in known_data */
+  as select ww
+     from vector of number ww, number cid
+     where ww in known_data(cid);
+
+create function ids_of_known_data()->Bag of Number
+  /* Function returning ids of the data stored in known_data */
+  as select cid
+     from vector of number ww, number cid
+     where ww in known_data(cid);
+
+create function values_of_normalized_known_data()->Bag of Vector of Number
+  /* Function returning all vector values of the data stored in normalized_known_data */
+  as select ww
+     from vector of number ww, number cid
+     where ww in normalized_known_data(cid);
+/*****************************************************************************
+ ULTILITY 
+******************************************************************************/
+create function add_dfn(Charstring file, Function dfn,
+                        Number idpos, Vector of Number valposl) 
+                    -> Function
+  /* Read instances to populate data function 
+      dfn(Number id)->Bag of Vector of Number val or
+      dfn(Number id)->Vector of Number val
+     from file with blank separated rows.
+     file: n-tuples file to import
+     dfn: data function to populate
+     idpos: Row position specifying id
+     valposl: Row positions specifying val vector */
+  as begin
+       for each Vector row where row in read_ntuples(file)
+         addfunction(dfn, project(row,{idpos}), {project(row, valposl)});
+       return dfn;
+     end;
+
+/* Set position in rows of mined file for class identifier: */
+create function idpos()->Number as stored;
+set idpos() = 0;
+
+/* Set positions in rows of mined file for value vector: */
+create function valposl()-> Vector of Number as stored;
+set valposl() = vectorof(iota(1, 32));
+
+/*MISTAKE
+Normalize the data use in the A1.osql
+
+Normalize the distance into [0, 1] used in this experiment.
+Because we use similarity as a real number from 0 to 1, 
+we need to normalized the computed distance into [0,1].
+There are several formulate to do so. Each formulate takes distance function
+as an input. Such formulate is considered as similarity function.
+*/
+
+
+
+create function internal_normalize_iddata(
+                                 Bag of (Number, Vector of Number) idds,
+                                 Vector of Number subtract, 
+                                 Vector of Number divide) 
+                                -> Bag of (Number, Vector of Number)
+  /* 
+     Accessibility level      : Internal function
+     Input parameters
+        - idds                : A bag of identified data (type B and C)
+        - subtract            : A vector to be subtracted
+        - divide              : A vector to be divided
+                     
+     Function normalizing a given set of classified data values in ds 
+     and returning a bag of normalized id data (type B and C)
+     Output parameters : 
+        - cid                 : A class identifier 
+        - normalized v        : normalized v 
+     */
+
+  /*as select cid,  (v - subtract) ./ substv(0,00001, divide)
+            from  Integer cid, Vector v 
+            where (cid, v) in idds;*/
+
+  as select cid,  (v - subtract) ./ divide
+            from  Integer cid, Vector v 
+            where (cid, v) in idds;
+
+
+create function id_extent(Function dfn) 
+       -> Bag of (Number id, Vector of Number val)
+  as select id, val where {id,val} in extent(dfn);
+    
+create function normalize_iddata(Function iddfn ,
+                                 Vector of Number subtract, 
+                                 Vector of Number divide,
+                                 Function normalized_data_fn) -> Boolean
+    /* 
+     Accessibility level      : User interface function
+     Input parameters
+        - iddfn               : A stored function storing identified data 
+                                (type B and C)
+        - subtract            : A vector to be subtracted
+        - divide              : A vector to be divided
+        - normalized_data_fn  : A stored function storing normalized data
+
+     Function normalizing a given stored function of identified data values in 
+     iddfn and  storing the normalized data in function normalized_data_fn
+     */
+   as for each Number cid, Vector v 
+          where (cid, v) in 
+                internal_normalize_iddata(cast((select extent(iddfn)) as 
+                                               Bag of (Number, 
+                                                       Vector of Number)),
+              	                         subtract, divide)
+          addfunction(normalized_data_fn, {cid}, vectorof(v));
+
+
+/*Total difference between attributes*/
+create function sum_ele(Vector of Number v1, Vector of Number v2) -> Number s as
+begin
+	declare Number d;
+	set d = dim(v1);
+	set s = 0;
+	for each Integer i where i in iota(0, d -1)
+	    set s = s + v1[i] - v2[i];
+	return abs(s);	
+end;
+
+
+create function intersect_dist(Vector of Number v1, Vector of Number v2)
+  -> Number dist
+ /*Compute the amount of non-overlap between the two histograms*/
+ as 
+  1 - sum(select cast(min(v1[i], v2[i]) as Number) 
+      from Number i where i in iota(0, dim(v1)));
+ 
+create function normalize_manhattan(Vector of Number v1, Vector of Number v2)
+-> Number dist
+as  manhattan(v1, v2) / (dim(v1));

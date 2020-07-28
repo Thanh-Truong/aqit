@@ -1,0 +1,44 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: simulator_powcon.osql,v $
+ * $Revision: 1.1 $ $Date: 2012/05/14 16:13:05 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Continous data simulator. It attempts to simulate machine's
+ * physical condition
+ *
+ ****************************************************************************
+ * $Log: simulator_powcon.osql,v $
+ * Revision 1.1  2012/05/14 16:13:05  thatr500
+ * adding parameters to control positive value & thresold, % of abnormality
+ * percentage.
+ *
+ * Revision 1.1  2012/05/14 07:53:13  thatr500
+ * Attempts to simulate continous data with abnormality
+ *
+ ****************************************************************************/
+<'datasimulator.osql';
+
+/*Sample curve*/
+plot_curve(1, 1000);
+
+/*------------------------------------------------------------------------------
+ POWER CONSUMPTION 
+------------------------------------------------------------------------------*/
+/*Number of cycles in an iteration*/
+set N()=60;
+/*height of normal curve, max value of normal measured value*/
+set hn()=50;
+/*length of a cycle 1s*/
+set lc()=1;
+/*Height of abnormal curve, max value of abnormal measured value*/
+set HA()= hn()*2;
+/*How fast abnormality grows*/
+set hf()=2;
+/*Positive curve only*/
+set positiveVal()= true;
+/*Generate incremental number given its bound and step*/
+/*Show it*/
+plot_curve(1, 1000);

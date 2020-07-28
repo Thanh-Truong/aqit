@@ -1,0 +1,369 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2011 Thanh Truong, UDBL
+ * $RCSfile: simple.osql,v $
+ * $Revision: 1.9 $ $Date: 2013/02/19 06:05:24 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Simple tests
+ *
+ ****************************************************************************
+ * $Log: simple.osql,v $
+ * Revision 1.9  2013/02/19 06:05:24  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.8  2012/09/06 09:24:33  thatr500
+ * Added some tests.
+ *
+ * Revision 1.7  2012/05/21 07:45:15  thatr500
+ * Tests for intermediate 'disconjunction'
+ *
+ * Revision 1.6  2012/04/27 14:34:49  thatr500
+ * Regression test for a complete routine
+ * SQL --> AmosQL --> Rewriter (AQIT) --> SQL Translator --> Database backend
+ *
+ * Revision 1.4  2012/04/16 07:45:22  thatr500
+ * added more cases
+ *
+ * Revision 1.3  2012/04/02 13:11:29  thatr500
+ * added tests AQIT + MBTREE rewrite
+ *
+ * Revision 1.2  2012/03/27 08:55:46  thatr500
+ * added abs example
+ *
+ * Revision 1.1  2012/01/20 17:31:20  thatr500
+ * simple 1D tests and complex multi-dimensional tests
+ *
+ *
+ ****************************************************************************/
+
+
+parteval('plus');
+parteval('times');
+                                             
+create function p(Number x)->Boolean as stored;
+
+create_index("p","x","mbtree","multiple");
+
+for each Number i where i in iota(-20, 20)
+   set p(i)=true;
+
+
+/*Turn off AQIT*/
+lisp;
+(setq *enable-aqit* nil)
+:osql
+
+
+create function q01()->Number
+  as select x from Number x
+     where x+5<6 and p(x);
+
+create function qOR1()->Number
+  as select x from Number x
+     where (x+1<1 and p(x)) or  (x+2 > 6 and p(x));
+
+create function qOR2()->Number
+  as select x from Number x
+     where (x+1<1 or  x+2 > 6) and p(x);
+
+
+create function q02()->Number
+  as select x from Number x
+     where 6 < x+5 and p(x);
+
+create function q03()->Number
+  as select x from Number x
+     where  x-5 > 6 and p(x);
+
+create function q04()->Number
+  as select x from Number x
+     where  6 < x-5  and p(x);
+
+create function q05()->Number
+  as select x from Number x
+     where  5*x < 15  and p(x);
+
+create function q06()->Number
+  as select x from Number x
+     where  -5*x < 15  and p(x);
+
+create function q07()->Number
+  as select x from Number x
+     where  15 > 5*x  and p(x);
+
+create function q08()->Number
+  as select x from Number x
+     where  15 > -5*x  and p(x);
+
+create function q09()->Number
+  as select x from Number x
+     where  x/2 > 4  and p(x);
+
+create function q010()->Number
+  as select x from Number x
+     where  x/-2 > 4  and p(x);
+
+create function q011()->Number
+  as select x from Number x
+     where 4 < x/-2  and p(x);
+
+create function q012()->Number
+  as select x from Number x
+     where x/4 > 2  and p(x);
+
+create function q013()->Number
+  as select x from Number x
+     where 2 > x/-4  and p(x);
+
+create function q014()->Number
+  as select x from Number x
+     where 4/x > 2  and p(x) and x!=0;
+
+create function q015()->Number
+  as select x from Number x
+     where -2 > -3/x  and p(x)  and x!=0;
+
+/*===========================================*/
+create function q1()->Number
+  /* simple inequality */
+  as select x from Number x
+     where x+5<6 and p(x);
+
+create function q2()->Number
+  /* Interval */
+  as select x from Number x
+     where x+5<7 and x+3>=4 and p(x);
+
+create function q3()->Number
+  /* Ambiguous */
+  as select distinct x from Number x, Number y
+     where x+5<y+5 and p(x) and p(y);
+
+create function q4()->Number
+  /* Ambiguous. Quadratic improvement possible */
+  as select distinct x from Number x, Number y
+     where x+5<y+5 and y+5 < 7 and p(x) and p(y);
+
+
+create function q5()->Number
+  /* simple inequality */
+  as select x from Number x
+     where abs(x)<6 and p(x);
+
+create function q6()->Number
+  /* simple inequality */
+  as select x from Number x
+     where abs(x+5)<6 and p(x);
+
+create function q7()->Number
+  /* simple inequality */
+  as select x from Number x
+     where abs(x+5)>6 and p(x);
+
+create function q8()->Number 
+  as select x from Number x where abs(x-1)>6 and p(x);
+
+create function q9()->Number
+  as select x from Number x
+     where abs(x)/2<3 and p(x);
+
+create function q10()->Number
+  as select x from Number x
+     where abs((x+5)/5)< 2 and p(x) and x!=0;
+
+create function q11()->Number
+  as select x from Number x
+     where abs((x - 5)) < 2 and p(x) and x!=0;
+
+
+create function q12()->Number
+  as select x from Number x
+     where abs((5-x)/5) < 2 and p(x);
+
+create function q13()->Number
+  as select x from Number x
+     where abs(x/5) < 2 and p(x);
+
+create function q14()->Number
+  as select x from Number x
+     where abs(x/-5) < 2 and p(x);
+
+create function q15()->Number
+  as select x from Number x
+     where abs((x - 5)/x) < 0.75 and p(x) and x != 0;
+
+create function q16()->Number
+  as select x from Number x
+     where abs((5 - x)/x) < 0.75 and p(x)  and x != 0;
+
+create function q17()->Number
+  as select x from Number x
+     where abs((5 - x)/x) < 0.75 and p(x) and x != 0;
+
+create function q18()->Number
+  as select x from Number x
+     where abs((x - 5)/x) < 0.5 and p(x) and x != 0;
+
+                                       
+create function q19()->Number
+  as select x from Number x
+     where (5/x) < 2 and p(x) and x > 0;
+
+
+create function q20()->Number
+  as select x from Number x
+     where (5/x) > -1 and p(x) and x > 0;
+
+create function q21()->Number
+  as select x from Number x
+     where (5/x) > -1 and p(x) and x < 0;
+
+create function q22()->Number
+  as select x from Number x
+     where (1 - 5/x) > -1 and p(x) and x > 0;
+
+create function q23()->Number
+  as select x from Number x
+     where (1 - 5/x) > -1 and p(x) and x < 0;
+
+
+create function q24()->Number
+  as select x from Number x
+     where (1 - 5/x) < 0.85 and p(x) and x != 0;
+
+
+create function q25()->Number
+  as select x from Number x
+     where abs((x - 5)/x) < 0.85 and p(x) and x > 0;
+
+
+create function q26()->Number
+  as select x from Number x
+     where abs(x) < 0.85 and p(x) and x != 0;
+
+
+
+create function q27()->Number
+  as select x from Number x
+     where abs(1-x) < 0.85 and p(x) and x != 0;
+
+
+
+create function q28()->Number
+  as select x from Number x
+     where (5 - x)/x < 0.75 and p(x)  and x != 0;
+
+
+create function q29()->Number
+  as select x from Number x
+     where 5/(x)  > 0.75 and p(x)  and x != 0;
+
+
+create function q30()->Number
+  as select x from Number x
+     where 5/(1 + x)  > 0.75 and p(x)  and x != -1;
+
+
+create function q31() -> Number
+  as select x from Number x
+     where 
+          5/((1 + x)*2)  > 0.75 and p(x)  and x != -1;
+
+create function q32() -> Number
+  as select x from Number x
+     where 
+          5/((1 + x)*2 -1)  > 0.75 and p(x)  and x != -1;
+
+create function q33() -> Number
+  as select x from Number x
+     where 
+          (5/((1 + x)*2 -1))*2  > 0.75 and p(x)  and x != -1;
+
+create function q34() -> Number
+  as select x from Number x
+     where 
+          (5/((1 + x)*2 -1))*2  - 0.0004 > 0.75 and p(x)  and x != -1;
+
+
+create function q35() -> Number
+  as select x from Number x
+     where 
+          1/5/((1 + x)*2 -1)  > 0.75 and p(x)  and x != -1;
+
+create function q36()-> Number
+as select x from Number x 
+   where (x+5<7 or x+3>=10) and p(x);
+
+create function q37()-> Number
+as select x from Number x 
+   where (x+5<7 and p(x)) or (x+3>=10 and p(x));
+
+/*Query optimizer cannot utilize MBTREE index since the queries hinder the 'inequality' */
+load_lisp('simple.lsp');
+
+
+/*Turn on AQIT*/
+lisp;
+(setq *enable-aqit* t)
+:osql
+
+recompile(#'q01');
+recompile(#'q02');
+recompile(#'q03');
+recompile(#'q04');
+recompile(#'q05');
+recompile(#'q06');
+recompile(#'q07');
+recompile(#'q08');
+recompile(#'q09');
+recompile(#'q010');
+recompile(#'q011');
+recompile(#'q012');
+recompile(#'q013');
+recompile(#'q014');
+recompile(#'q015');
+
+
+recompile(#'q1');
+recompile(#'q2');
+recompile(#'q3');
+recompile(#'q4');
+recompile(#'q5');
+recompile(#'q6');
+recompile(#'q7');
+recompile(#'q8');
+recompile(#'q9');
+recompile(#'q10');
+recompile(#'q11');
+recompile(#'q12');
+recompile(#'q13');
+recompile(#'q14');
+recompile(#'q15');
+recompile(#'q16');
+recompile(#'q17');
+recompile(#'q18');
+recompile(#'q19');
+recompile(#'q20');
+recompile(#'q21');
+recompile(#'q22');
+recompile(#'q23');
+recompile(#'q24');
+recompile(#'q25');
+recompile(#'q26');
+recompile(#'q27');
+recompile(#'q28');
+recompile(#'q29');
+recompile(#'q30');
+recompile(#'q31');
+recompile(#'q32');
+recompile(#'q33');
+recompile(#'q34');
+recompile(#'q35');
+recompile(#'q36');
+recompile(#'q37');
+
+
+/*Query optimizer can utilize MBTREE index  */
+load_lisp('simple.lsp');

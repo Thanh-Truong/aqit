@@ -1,0 +1,159 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: sigstreamgen2.osql,v $
+ * $Revision: 1.6 $ $Date: 2012/06/18 11:46:45 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Time sequence generator(2)
+ *
+ ****************************************************************************
+ * $Log: sigstreamgen2.osql,v $
+ * Revision 1.6  2012/06/18 11:46:45  thatr500
+ * write generated stream (bag) into text file (CSV)
+ *
+ * Revision 1.5  2012/06/12 07:43:56  thatr500
+ * Complete example of generating a stream and writting it into file
+ * (comma seperate format)
+ *
+ * Revision 1.4  2012/06/05 13:05:24  thatr500
+ * Generate time sequence that looks like Ling Liu thesis (Fig 1.4 page 7)
+ *
+ * Revision 1.3  2012/05/31 10:01:13  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.2  2012/05/31 09:51:59  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2012/05/31 08:15:26  thatr500
+ * Another attempt to generate data. TO BE REFINED !!!
+ *
+ *
+ ****************************************************************************/
+load_lisp('sigstreamgen.lsp');
+
+/*Generate incremental number given its bound and step*/
+create function tstream(Vector of Number cv   /* Cycle curve that shapes the curve*/
+                        ,Number cycles        /* Number of cycles*/
+                        ,Number sel           /* Selectivity = % events that go 
+                                                 beyond a thresold*/  
+                        ,Number cyclefluct    /* Rough curve */
+                        ,Number peaksize      /* Peak size*/   
+                        ,Number peakduration  /* Peak duration*/
+                        ,Number thresold 
+                        )-> Bag of Vector of Number  
+as 
+begin 
+   declare Number t, 
+           Number Ft,
+           Number e,
+           Number c, Number clength,
+           Number numab, Number disturb, Number startab, Number endab; 
+
+   set clength = dim(cv);                  /*length of cv*/  
+   /*in a cycle, peak happen regards to a frequency*/ 
+   set startab = floor(clength/2 - peakduration/2);  
+   set endab =  startab + peakduration;  
+
+   set c = 0;   
+   while (c < cycles)   /*Loop through number of cycles*/
+   do  
+       set e = 0; 
+       while (e < clength) /*Loop through number of events*/ 
+       do 
+          if (startab <= e and e <= endab) then set disturb = frandom(peaksize)
+          else set disturb = 0; 
+
+	  /*Goes beyond a thresold*/
+          if (mod(c, floor(1/sel)) = 0
+              and e = (startab + floor(peakduration /2))
+             ) then set disturb = thresold + frandom(0.01);
+          
+          set t =   e + (c * clength) + 1;
+          set Ft =  cv[e] + frandom((0- cyclefluct), cyclefluct) + disturb;              
+         
+          return (select {t, Ft}); /*Emit the result*/
+	  set e = e + 1;    
+       end while;   
+       set c = c + 1;
+   end while;       
+end;
+
+/*-----------------------------------------------------------------------------
+TESTING MODELS
+-----------------------------------------------------------------------------*/
+create function bellcycle(Number i)->Bag of Number
+  /* generate bell cycle over i intervals */
+  as roundto(sin(iota(0,i)*2*pi()/(2*i)) * 4,4) + 500;
+
+
+create function bellcycle(Number i)->Bag of Number
+  /* generate bell cycle over i intervals */
+  as select t 
+     from Number t , Number j
+     where t = roundto(sin(j*2*pi()/(2*i)),4) + 500
+     and j in iota(0, i);
+
+
+/*
+plot({0}, vectorof({bellcycle(60), 0}));
+
+
+plot({1}, vectorof(tstream(vectorof(
+			   bellcycle(60))
+                           ,20   
+                           ,0.2  
+                           ,0.05 
+                           ,1   
+                           ,10  
+                           ,1.5
+                           )));
+*/
+
+/*-----------------------------------------------------------------------------
+STREAM TO FILE
+-----------------------------------------------------------------------------*/
+/*Time sequence starts from :startTime*/
+set :startTime = timeval(2000, 1, 1, 0, 0, 0);
+
+/*Generate stream-based of data (machineID, Timeval, Powcon) */
+set :r = (select {mod(t, 100), 
+                  timeval(2000, 1, 1, 0, 0, 0) + t, 
+                  roundto(Ft, 2)} 
+          from Number t, Number Ft, Bag of Vector of Number b
+          where {t, Ft} in b and 
+                b =  tstream(vectorof(bellcycle(60))
+                           ,20    /* # of cycles*/
+                           ,0.2   /* % events go beyond a thresold*/
+                           ,0.05  /* cycle fluctuation*/
+                           ,1     /* Peak size*/
+                           ,10    /* peak duration*/ 
+                           ,1.5));
+
+/*Flush out the stream to comma seperate file format
+write_csv(:r, "test.csv", ",");
+*/
+
+
+create function generateData(Charstring filename, Number size)->Boolean
+as begin 
+ declare Bag of Vector v;
+ set v = ( select {timeval(2000, 1, 1, 0, 0, 0) + t, /*Time*/
+                   mod(t, 100),                  /*Machine ID*/
+                   roundto(Ft, 2)                           /*Power Consumption*/ 
+                  } 
+               from Number t, Number Ft, Bag of Vector of Number b
+               where {t, Ft} in b and 
+                     b =  tstream(vectorof(bellcycle(60))
+                           ,floor(size / 60)    /* # of cycles*/
+                           ,0.2   /* % events go beyond a thresold*/
+                           ,0.05  /* cycle fluctuation*/
+                           ,1     /* Peak size*/
+                           ,10    /* peak duration*/ 
+                           ,1.5));
+ write_csv(v, filename, ";");
+end;
+
+
+

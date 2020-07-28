@@ -1,0 +1,147 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) <year> <author>, UDBL
+ * $RCSfile: mysql.osql,v $
+ * $Revision: 1.6 $ $Date: 2012/04/16 07:22:38 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: <description>
+ *
+ ****************************************************************************
+ * $Log: mysql.osql,v $
+ * Revision 1.6  2012/04/16 07:22:38  thatr500
+ * changed datatypes
+ * - machine integer,
+ * - time    datetime,
+ * - powcon  float
+ *
+ * Revision 1.5  2012/03/28 17:48:36  thatr500
+ * Test connection to MySQL, local SQLServer and remote SQLServer
+ *
+ * Revision 1.4  2012/03/27 08:39:50  thatr500
+ * more queries
+ *
+ * Revision 1.3  2012/03/22 13:54:43  torer
+ * using bigintegrator
+ *
+ * Revision 1.2  2012/03/22 08:51:11  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2012/03/22 08:39:01  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2012/03/22 08:29:03  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2006/02/12 20:01:08  torer
+ * Folder AmosNT/headers contains CVS header templates
+ *
+ ****************************************************************************/
+
+/* MySQL at localhost*/
+set :a = jdbc("aqit", "com.mysql.jdbc.Driver"); 
+set :dburl = "jdbc:mysql://localhost:"+getenv("PORTDB")+"/";
+connect(:a, :dburl + "regress", "regress", "regress");
+
+/*Make database
+read_sql(:a, "mysql_makedatabase.sql");
+*/
+
+
+/* *-------------------------------------------------------------------
+ * Make the table queryable with SQL query
+ * 1. Make an object-oriented view of the table
+ * 2. Wrap that view (core cluster function) with a (#) function
+ * 3. Declare that table has a B-tree. JDBC should be able to do this
+ *    instead. 
+ *-------------------------------------------------------------------*/
+import_table(:a, 'EXPDATA');/*mapped type for ExpData*/
+
+import_table(:a, 'LOGDATA');/*mapped type for LogData*/
+
+/*Add description about indexes on remote tables through cc function*/
+add_descr_index_cc('B-tree', #'LOGdata_AQIT_CC->REAL.REAL.REAL', 2);
+
+parteval("plus");
+/* *-------------------------------------------------------------------
+ * Queries
+ *-------------------------------------------------------------------*/
+
+/* Q0 */
+create function q0()-> Bag of (Real, Real, Real)
+ as select time(l), machine(l), powcon(l)
+    from   logdata@aqit l 
+    where  powcon(l) <= 0.1 and
+           time(l) > 2009;
+
+/*Simple inequality can get through*/
+/*Q1*/
+create function q1()-> Bag of (Real, Real, Real)
+ as select time(l), machine(l), powcon(l)
+    from   logdata_aqit l 
+    where 
+	   abs(powcon(l)) <= 0.1 and
+           time(l) >= 2009;
+
+/*Q2*/
+
+create function q2()-> Bag of (Real, Real, Real)
+  as select time(l), machine(l), powcon(l)
+     from   logdata@aqit l 
+     where abs(powcon(l) + 0.05) <=  0.001 and
+           time(l) > 2009;
+
+
+/*compare with expected data. Simple*/
+/*Q3*/
+create function q3()-> (Real, Real, Real)
+  as select time(l), machine(l), powcon(l)
+     from   expdata_aqit e ,logdata_aqit l 
+     where 
+	powcon(e) <= powcon(l)
+     and    
+        machine(e) = machine(l)
+     and     
+        time(l) > 2000;
+
+/*Q4. Absolute error*/
+create function q4()-> (Real, Real, Real)
+  as select time(l), machine(l), powcon(l)
+     from   expdata@aqit e ,logdata@aqit l 
+     where 
+	powcon(e) - powcon(l)  <= 0.03
+     and    
+        machine(e) = machine(l)
+     and     
+        time(l) > 2012;
+
+
+recompile('q4');
+
+
+create function q5()-> (Real, Real, Real)
+  as select time(l), machine(l), powcon(l)
+     from   expdata@aqit e ,logdata@aqit l 
+     where 
+	abs(powcon(l) - powcon(e)) <= 0.005
+     and    
+        machine(e) = machine(l)
+     and     
+        time(l) > 2012;
+
+create function q6()-> (Real, Real, Real)
+  as select time(l), machine(l), powcon(l)
+     from   expdata@aqit e ,logdata@aqit l 
+     where 
+	abs(powcon(l)- powcon(e)) <= 0.005
+     and machine(l) = machine(e)
+     and time(l) > 2011;
+
+/**/
+select l.time, l.machine, l.powcon
+from   logdata l, expdata e 
+where  abs(l.powcon - e.powcon) < 10 and
+       date() - l.time <= 7; 
+
+

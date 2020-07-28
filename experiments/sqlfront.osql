@@ -1,0 +1,61 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) <year> <author>, UDBL
+ * $RCSfile: sqlfront.osql,v $
+ * $Revision: 1.2 $ $Date: 2012/04/27 14:13:40 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Write test queries for AQIT in SQL format
+ *
+ ****************************************************************************
+ * $Log: sqlfront.osql,v $
+ * Revision 1.2  2012/04/27 14:13:40  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2011/11/15 10:45:08  thatr500
+ * Use SQL query instead of AMOSQL
+ *
+ *
+ ****************************************************************************/
+create function #income(Charstring name)->Number inc as stored;
+create_index('#income', 'inc', 'MBTREE', 'multiple');
+
+lisp;
+(setq *enable-aqit* nil)
+:osql
+/*Make AMOSQL query*/
+select name from Number inc, Charstring name 
+where #income(name) = inc 
+and inc + 500< 4000;
+
+/*Look at the execution plan to see that the system cannot utilize B-tree index*/
+pc('*select*');
+
+/*Make the same query in SQL*/
+sql("select name from income where inc + 500< 4000");
+
+/*The system cannot utilize B-tree index*/
+pc('*select*');
+
+/*Now turn on AQIT*/
+lisp;
+(setq *enable-aqit* t)
+:osql
+
+/*Make AMOSQL query*/
+select name from Number inc, Charstring name 
+where #income(name) = inc 
+and inc + 500< 4000;
+
+/*Look at the execution plan to see that the system now utilizes B-tree index*/
+pc('*select*');
+
+/*Make the same query in SQL*/
+sql("select name from income where inc + 500< 4000");
+
+/*The system can utilize B-tree index*/
+pc('*select*');
+
+
+

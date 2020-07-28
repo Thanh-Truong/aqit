@@ -1,0 +1,11 @@
+REM --Run it 
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit10M.csv', 10000000);quit;"
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit20M.csv', 20000000);quit;"
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit30M.csv', 30000000);quit;"
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit40M.csv', 40000000);quit;"
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit50M.csv', 50000000);quit;"
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit60M.csv', 60000000);quit;"
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit70M.csv', 70000000);quit;"
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit80M.csv', 80000000);quit;"
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit90M.csv', 90000000);quit;"
+start /separate amos2 sim.dmp -o "generateData('D:\\Generated_Machine_Data\dataaqit100M.csv', 100000000);quit;"

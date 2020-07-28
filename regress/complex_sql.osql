@@ -1,0 +1,88 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012  Thanh Truong, UDBL
+ * $RCSfile: complex_sql.osql,v $
+ * $Revision: 1.2 $ $Date: 2012/05/21 07:45:15 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Test SQL Parser, AQIT ,and SQL Translator
+ *
+ ****************************************************************************
+ * $Log: complex_sql.osql,v $
+ * Revision 1.2  2012/05/21 07:45:15  thatr500
+ * Tests for intermediate 'disconjunction'
+ *
+ * Revision 1.1  2012/04/27 14:34:49  thatr500
+ * Regression test for a complete routine
+ * SQL --> AmosQL --> Rewriter (AQIT) --> SQL Translator --> Database backend
+ *
+ * Revision 1.1  2012/04/18 07:57:32  thatr500
+ * Auto-run with different configurations
+ *
+ ****************************************************************************/
+/*Initialize connection*/
+loadsystem("../experiments", "connection.osql");
+
+import_table(aqit_jdbc(), "expData");/*mapped type for ExpData*/
+
+import_table(aqit_jdbc(), 'logdata');/*mapped type for LogData*/
+
+/*Add description about indexes on remote tables through cc function*/
+add_descr_index_cc('B-tree', #'logdata_aqit_cc->charstring.integer.real', 2);
+
+parteval("plus");
+parteval("times");
+parteval("get_machines");
+
+/*In SQL*/
+create function sql:logdata()->(Charstring time, Integer machine, Real powcon) as logdata_aqit_cc();
+
+create function sql:expdata()->(Integer machine, Real powcon) as expdata_aqit_cc();
+
+
+/*Specifying queries in SQL */
+sql("select l.time, l.machine, l.powcon 
+     from   logdata l 
+     where  l.time >= date() - 30 and
+            abs(l.powcon - 500) > 10");
+
+set :r1 = contain_sql_pattern("*POWCON*<*490*");
+
+set :r11 = contain_sql_pattern("*POWCON*>*510*");
+
+sql("select l.time, l.machine, l.powcon 
+     from   logdata l, expdata e 
+     where  l.time >= date() - 30 and
+            abs(e.powcon - l.powcon) > 10 and
+            l.machine = e.machine and
+            l.machine in (1, 2, 3)");
+
+set :r2 = contain_sql_pattern("*E_.MACHINE in (1,2,3)*");
+set :r3 = contain_sql_pattern("*L_.POWCON < (E_.POWCON - 10)*");
+
+sql("select l.time, l.machine, l.powcon 
+     from   logdata l, expdata e 
+     where  l.time >= date() - 30 and
+            abs(e.powcon - l.powcon) > 10 and
+            l.machine = e.machine and
+            (l.machine = 1 or l.machine = 2 or l.machine=3)");
+
+set :r4 = contain_sql_pattern("*E_.MACHINE in (1,2,3)*");
+
+set :r5 = contain_sql_pattern("*L_.POWCON < (E_.POWCON - 10)*");
+
+
+lisp;
+
+(checkequal "SQL Parser, AQIT, and SQL Translator together"
+	((osql ":r1;") '((TRUE)))
+	((osql ":r11;") '((TRUE)))
+	((osql ":r2;") '((TRUE)))
+	((osql ":r3;") '((TRUE)))
+	((osql ":r4;") '((TRUE)))
+	((osql ":r5;") '((TRUE)))
+)
+
+
+:osql

@@ -1,0 +1,175 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: datasimulator.osql,v $
+ * $Revision: 1.3 $ $Date: 2012/05/15 14:32:33 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Continous data simulator. It attempts to simulate machine's
+ * physical condition
+ *
+ ****************************************************************************
+ * $Log: datasimulator.osql,v $
+ * Revision 1.3  2012/05/15 14:32:33  thatr500
+ * control % of abnormality which goes beyond a thresold
+ *
+ * Revision 1.2  2012/05/14 16:13:05  thatr500
+ * adding parameters to control positive value & thresold, % of abnormality
+ * percentage.
+ *
+ * Revision 1.1  2012/05/14 07:53:13  thatr500
+ * Attempts to simulate continous data with abnormality
+ *
+ ****************************************************************************/
+
+/*Number of cycles in an iteration*/
+create function numc()->Number as stored;
+set numc()=60;
+
+/*height of inactive curve, max value of non intersting value*/
+create function heightn()->Number as stored;
+set heightn()=15;
+
+/*length of a cycle 1s*/
+create function lengthc()->Number as stored;
+set lengthc()=2;
+
+/*Height of abnormal curve, max value of active data*/
+create function heighta()->Number as stored;
+set heighta()= heightn();
+
+/*How fast  a peak grows*/
+create function howfast()->Number as stored;
+set howfast()=2;
+
+create function positiveVal()-> Boolean as stored;
+set positiveVal()= false;
+
+/*Thresold Up*/
+create function thresoldU()-> Number as stored;
+set thresoldU()= heightn()*10;
+
+
+/*How many % of total data, abnormality happens*/
+create function percent()-> Number as stored;
+set percent()= 0;
+
+/*Calculate a trend of a peak at random*/
+create function calTrend()->Number as
+begin
+  declare Number trend;
+  if (positiveVal()) then 
+  begin 
+      set trend = 1; 
+  end else 
+  begin 
+      set trend  =  rand(0, 2); 
+      if (trend = 0) then set trend = -1;
+  end;   
+  return trend;
+end;
+
+/*Calculate base*/
+create function calBase(Number t)->Number as
+begin
+  declare Number base;
+  set base =  rand(floor(heightn()*0.5),  heightn())*sin(t);
+  if (positiveVal() and base <0) then set base =0;
+  return base;
+end;
+
+/*In a peak area?*/
+create function inPeakArea(Number c, Number startp, Number endp)->Boolean 
+as  (c >= startp and c <= endp);
+
+/*
+0: stay
+1: up
+-1:down
+*/
+create function direction(Number c, Number startp, Number endp, Number apeak)->Number 
+as begin
+   declare Number dir;
+   set dir = 0;
+   if (inPeakArea(c, startp, endp)) then
+   begin
+        if (c >= startp and c <= apeak) then set dir = 1;
+        if (c > apeak and c <= endp) then    set dir = -1; 
+   end;
+   return dir;
+end;
+
+/*Peak in this iter should go beyond the thresold*/
+create function shouldbeyondThresold(Number iter)->Boolean
+ as (Percent() != 0 and mod(iter, floor(1/percent()))=0);
+
+create function compensate(Number val, Number iter)->Number
+as 
+begin
+    if (shouldbeyondThresold(iter)) then
+    begin
+       if (val > 0 and val < thresoldU()) then set val = thresoldU() + rand(howfast()+1); 
+    end else
+    begin
+       if (percent() !=0 and val > 0 and val > thresoldU()) then set val = thresoldU() - rand(howfast()+1); 
+    end;
+    return val;
+end;
+
+
+/*Generate incremental number given its bound and step*/
+create function tstream(Number l, Number u) -> Bag of Number  
+  as begin declare Number t, Number i, Number startab,Number endab, 
+                   Number trend,Number apeak,Number growth, Number val,
+                   Number numi, Number iter,
+                   Number numab, Number c;
+
+           set numi = ceiling((u - l) / (numc()*lengthc())); /*# of iterations*/
+           set numab  = floor(percent()*numi);    /*# of abnormality*/
+
+	   set iter = 0;
+	   while(iter < numi)      /*Iteration*/
+           do  
+              /*Re-calculate parameters of a peak happening at each iteration*/ 
+              set trend = calTrend();  
+              set startab = rand(floor(numc()*1/2), numc()*3/4);
+              set endab  =  floor(numc()*3/4);    
+              set apeak = rand(startab, endab); 
+              set growth = heighta();
+   
+              set c = 0;
+              while (c < numc())   /*Cycle*/
+              do  
+                  set i = 0;
+                  while (i < lengthc()) /* item*/
+                  do 
+                      set t = (iter * lengthc() * numc()) /* t = up to previous iteration*/
+                              + c*lengthc() + i + 1;      /* + current cycle data*/ 
+
+                      set val = calBase(t);               /*continous data = F(t)*/                        
+                      if (inPeakArea(c, startab, endab)) then 
+                      begin 
+                           set growth = growth + direction(c, startab, endab, apeak) * howfast();
+                           set val = val + trend * growth; 
+                           set val = compensate(val,iter);
+                      end;
+                      /*Always positive ?*/
+                      if(positiveVal() and val < 0 ) then set val = 0;
+                      return val;
+                      set i = i +1; /*Next item*/      
+                  end while;
+                  set c = c + 1;    /*Next cycle*/  
+              end while;   
+              set iter = iter + 1; /*Next iteration*/  
+           end while;       
+     end;
+
+/*Plot the stream number*/
+create function plot_curve(Number l, Number u)->Integer 
+as  plot({0} /*plot 0th column*/, vectorof({tstream(l, u), 0/*just make it 2D*/}));
+
+/*Reset settings of the curve as one wish*/
+/*Show it plot_curve(1, 1000);*/
+
+/*Requirement for PowCon*/

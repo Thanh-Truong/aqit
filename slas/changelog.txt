@@ -1,0 +1,140 @@
+2013-09-19
+BEFORE:
+I was thinking to have one primary index instance which indexes a file on
+block level.
+I was thinking to have one secondary index instance per block.
+
+NOW: 
+I decided to have only one secondary index instance, which indexes every rows
+in a log file. This is a test to see how big the LOFIX-S will be
+
+I don't have time for it... this is put into closet
+----------------------------------------------------------------------------
+
+
+2013-11-11
+
+AmosNT/lsp/lispdef.lsp 
+Change flag to disable mexima. I need to run the system with in memory 
+Btree which is easier to rollout
+
+----------------------------------------------------------------------------
+2014-03-03
+From real number find timeval value
+
+select tv from Timeval tv where real(tv)=1313681285.3;
+
+----------------------------------------------------------------------------
+see AmosNT/regress/testsubplan.lsp
+see AmosNT/lsp/subplan.lsp
+
+(internalize-code ) --> create an transient object that encapsulates the code produces from externalize-code
+(externalize-code ) --> externalize the code that can be sent
+(predicate-definition ) --> predicate definition for fno
+(theresolvent 'fn) --> get fno  the resolvents of function fn
+
+Currently, when register a node as RawWorker, we associate it with
+a pair of datafile, metafile. These files are bound to a specific 
+MappedRelation. 
+
+What if we have more than one ?
+Principle, each RawWorker works only one pair from a specific MappedRelation.
+??????????????
+RawWorker's name should reflect this
+
+
+ (externalize-fndef (predicate-function (selectbody-argl sb)
+                        (selectbody-resl sb)
+                        (selectbody-pred sb)))
+
+
+ (externalize-fndef (predicate-function invars
+                                        outvars
+					pred))
+------------------------------------------------------
+AMOSQL datatype of transient function is Function
+
+create function create_transfunc()->Function tfn 
+ as foreign 'create-transfn';
+
+lisp;
+
+(defun create-transfunc (fno tfn) 
+ (osql-result (predicate-function 
+      	          (selectbody-argl sb)
+ 	          (selectbody-resl sb)
+		  (selectbody-pred sb))))
+
+:osql
+create_transfunc();
+-------------------------------------------------------------------------
+2014-03-10       
+
+Now I have finished "sending subquery" to nodes, but another problem appeared.
+
+In the subquery part, it includes definition of LogFile_MeasuresB. However, the 
+spawned nodes does not have the defintion of it. Why ?
+
+  - Look into test-generate-log.lsp
+    First, we define a logged data stream.
+
+  - The we do "slasraw:log", this will log the comming data stream into chunks
+    together with the metadata saved as database image (Meta-data builder node)
+   
+    However, the Meta-data builder node was spawned with slasraw.dmp which ofcourse,
+    did not contain the newly defined LogFile_MeasuresB
+
+
+Solution:
+a) When defining "LogFile_MeasuresB" this will be saved into the current database
+   image.
+
+   Then Meta-data builder is spawned with exactly the same image.
+
+   What happens if people do rollback or define more things on the fly.
+
+b) 
+(osql "register('me');"
+
+(osql "updateState(\"set :s = streamof(csv_file_tuples('measuredB.txt'));\");")                  
+
+(osql "updateState(\"set :lds = define_loggedstream(:s, 'LogFile_MeasuresB',
+                                            {'m', 's', 'bt', 'et', 'mv'}, 
+                                            {4}, 3);\");")  
+
+(osql "slasraw:log(:s, :lds);")         
+
+((#[OID 3017 "VECTOR.LOGFILE_MEASURESB_ROWTOCOLUMNS->NUMBER.NUMBER.NUMBER.NUMBER.NUMBER"] 
+    _V37 _V7 _V8 _V9 _V10 _V11)
+ (#[OID 2996 "VECTOR-RAWWORKERREMOTE.FUNCTION.VECTOR.NUMBER.MAPSUBQUERYONCHUNKS->OBJECT"] 
+    _V36 #[OID TRANSIENT 15077208 ] 12 _V37)
+ (#[OID 2977 "LOGDATASTREAM.SPAWN_ALL_RAWWORKERS->VECTOR-RAWWORKERREMOTE"] 
+    #[OID 3002] _V36)
+ (#[OID 202 "OBJECT.OBJECT.>->BOOLEAN"] _V7 8))
+
+(AND (#[OID 3017 "VECTOR.LOGFILE_MEASURESB_ROWTOCOLUMNS->NUMBER.NUMBER.NUMBER.NUMBER.NUMBER"] 
+        _V37 _V7 _V8 _V9 _V10 _V11)
+     (#[OID 2994 "VECTOR-RAWWORKERREMOTE.CHARSTRING.NUMBER.MULTICASTRECEIVECHUNKS->OBJECT"] 
+        _V36 "rawworker_fullscan_chunk" 12 _V37)
+     (#[OID 2977 "LOGDATASTREAM.SPAWN_ALL_RAWWORKERS->VECTOR-RAWWORKERREMOTE"] 
+        #[OID 3002] _V36)
+     (#[OID 202 "OBJECT.OBJECT.>->BOOLEAN"] _V7 8))
+
+
+---------------------------------------------------------------------------------
+2014-03-13
+
+what other modifications outside of AmosNT/slas
+
+AmosNT/lsp/lispdef.lsp
+
+2014-03-13
+I modified slas/raw/slaslogger/Makefile...at revision 166 --> 167
+2014-03-19
+What did I need to change on Windows
+ 
+In AmosNT\C\scsq.h I put EXPORT in front of init_scsq
+In AmosNT\validate\swin.c I remove definition of swincell ... by #include "swinCh.h"
+
+In AmosNT\validate\MVC\swin.dsw is changed
+In AmosNT\scsq\MVC\scsqlib.dsw is changed

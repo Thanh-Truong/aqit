@@ -1,0 +1,262 @@
+Query 2
+The simple query Q2 finds when sensor pressure pump named ‘B’ had pressure 
+deviating 15 from its expected value:
+
+
+select r.bt, r.et 
+from measuredValueA r,sensor s,equipment eq 
+where  r.e = s.e and
+       s.name = 'B' and
+       eq.e = r.e and
+       abs(r.mv - s.ev)> 11;
+
+==>
+select r.bt, r.et
+from measuredValueA r,sensor s,equipment eq 
+where  r.e = s.e and
+       s.name = 'A' and
+       eq.e = r.e and
+       (r.mv> 11 + s.ev or r.mv< - 11 + s.ev);
+
+-----------------------------------------------------------------------------------------
+Query 3
+When and on what equipments were both sensor "REG_407" and "REG_408" out of bounds?
+
+ select eq.name, 
+        greater(r1.bt, r2.bt),       
+        lesser(r1.et, r2.et) 
+ from   measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where  r1.e = s1.e and s1.name = 'A' and
+        r2.e = s2.e and s2.name = 'B' and
+        r1.e = r2.e and (r1.bt <= r2.et and r1.et >= r2.bt) and
+        eq.e = r1.e and
+        r1.mv - s1.ev > 300 and
+        abs(r2.mv - s2.ev)> 11
+===>
+select  eq.name, 
+        greater(r1.bt, r2.bt),       
+        lesser(r1.et, r2.et) 
+ from   measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where  r1.e = s1.e and s1.name = 'A' and
+        r2.e = s2.e and s2.name = 'B' and
+        r1.e = r2.e and (r1.bt <= r2.et and r1.et >= r2.bt) and
+        eq.e = r1.e and
+        ((r1.mv > 300 + s1.ev  and r2.mv > 11  + s2.ev)
+        OR (r1.mv > 300 + s1.ev  and r2.mv < - 11  + s2.ev))
+
+-----------------------------------------------------------------------------------------
+Query 4
+4.When and on what equipments were either sensor "REG_407" or "REG_408" out of bounds?
+ select eq.name, r2.bt, r2.et
+ from measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where r1.e = s1.e and s1.name = 'A' and
+       r2.e = s2.e and s2.name = 'B' and
+       r1.e = r2.e and (r1.bt <= r2.et and r1.et >= r2.bt) and       
+       eq.e = r1.e and
+       /*out of bound*/
+       (r1.mv - s1.ev > 300 or
+       abs(r2.mv - s2.ev)> 11)
+==>
+select eq.name, r2.bt, r2.et
+ from measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where r1.e = s1.e and s1.name = 'A' and
+       r2.e = s2.e and s2.name = 'B' and
+       r1.e = r2.e and (r1.bt <= r2.et and r1.et >= r2.bt) and
+       eq.e = r1.e and
+       (r1.mv > 300 + s1.ev
+       OR
+       r2.mv >  11  + s2.ev
+       OR	
+       r2.mv <  -11  + s2.ev)
+-----------------------------------------------------------------------------------------
+Query 5
+When was REG_408 out of bounds on equipment "foo"?
+select r.bt, r.et
+from measuredValueB r,sensor s,equipment eq 
+where  r.e = s.e and
+       s.name = 'B' and
+       eq.e = r.e and
+       eq.name = "E_1" and
+       abs(r.mv-s.ev) > 11
+===>
+select r.bt, r.et
+from measuredValueB r,sensor s,equipment eq 
+where  r.e = s.e and
+       s.name = 'B' and
+       eq.e = r.e and
+       eq.name = "E_1" and
+       (r.mv> 11  + s.ev OR r.mv< - 11  + s.ev)
+-----------------------------------------------------------------------------------------
+/*Query 6.When was REG_408 (B) out of bounds both on equipment "E_1" and "E_2"?*/
+as
+select  greater(r1.bt, r2.bt),       
+        lesser(r1.et, r2.et) 
+from measuredValueB r1, sensor s1, equipment eq1,
+     measuredValueB r2, sensor s2, equipment eq2
+     where /*on equipment E_1*/ 
+          r1.e = s1.e and s1.name = 'B' and 
+          eq1.e = r1.e and eq1.name = "E_1" and
+          abs(r1.mv-s1.ev)> 11 and
+           
+          (r1.bt <= r2.et and r1.et >= r2.bt) and  
+	  /*on equipment E_2*/ 
+          r2.e = s2.e and s2.name = 'B' and 
+          eq2.e = r2.e and eq2.name = "E_2" and
+          abs(r2.mv-s2.ev)> 11 
+===>
+select greater(r1.bt, r2.bt),       
+        lesser(r1.et, r2.et) 
+from measuredValueB r1, sensor s1, equipment eq1,
+     measuredValueB r2, sensor s2, equipment eq2
+    where /*on equipment E_1*/ 
+          r1.e = s1.e and s1.name = 'B' and 
+          eq1.e = r1.e and eq1.name = "E_1" and
+          r1.mv> 11 + s1.ev and
+           
+          (r1.bt <= r2.et and r1.et >= r2.bt) and  
+	  /*on equipment E_2*/ 
+          r2.e = s2.e and s2.name = 'B' and 
+          eq2.e = r2.e and eq2.name = "E_2" and
+          (r2.mv> 11 + s2.ev  OR 
+           r2.mv< -11 + s2.ev OR
+           r2.mv> 11 + s2.ev  OR
+           r2.mv< -11 + s2.ev) 
+-----------------------------------------------------------------------------------------
+/*Query 7.When was REG_408 out of bounds in a list of equipments ("E_1" , "E_2")?*/
+
+select r1.bt, r1.et
+from measuredValueB r1, sensor s1, equipment eq1
+where r1.e = s1.e and s1.name = 'B' and 
+      r1.e = eq1.e and eq1.name in ('E_1', 'E_2')  and       
+      abs(r1.mv - s1.ev) > 11;
+===>
+select r1.bt, r1.et
+from measuredValueB r1, sensor s1, equipment eq1
+where r1.e = s1.e and s1.name = 'B' and 
+      r1.e = eq1.e and eq1.name in ('E_1', 'E_2')  and       
+      (r1.mv > 11+ s1.ev OR r1.mv < -11+ s1.ev)
+
+-----------------------------------------------------------------------------------------
+/*Query 8.	When and on what equipments did sensor A and sensor B fail 
+        within 5 seconds of each other?*/
+
+ select eq.name, r2.bt, r2.et
+ from measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where r1.e = s1.e and s1.name = 'A' and
+       r2.e = s2.e and s2.name = 'B' and
+       /*same equipment*/
+       r1.e = r2.e               and
+       /*join equipment*/
+       eq.e = r1.e              and
+       /*out of bound*/
+       r1.mv - s1.ev > 300      and
+       abs(r2.mv -s2.ev) > 11    and
+       abs(r1.bt - r2.bt) < 5; 
+===>
+ select eq.name, r2.bt, r2.et
+ from measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where r1.e = s1.e and s1.name = 'A' and
+       r2.e = s2.e and s2.name = 'B' and
+       /*same equipment*/
+       r1.e = r2.e               and
+       /*join equipment*/
+       eq.e = r1.e               and
+       /*out of bound*/
+       (
+         (r1.mv> 300 +  s1.ev    and
+          r2.mv> 11  + s2.ev     and
+          r1.bt - r2.bt < 5      and
+          r1.bt - r2.bt > -5)
+       OR 
+          (r1.mv> 300 +  s1.ev   and
+           r2.mv< -11  + s2.ev   and
+           r1.ts - r2.ts < 5     and
+           r1.bt - r2.bt > -5)    
+       )
+
+-----------------------------------------------------------------------------------------
+
+/*Query 9.When an on what equipments were the sum of deviations of sensor A and B larger that a threshold?
+*/
+ select eq.name, greater(r1.bt, r2.bt),       
+                 lesser(r1.et, r2.et) 
+ from measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where r1.e = s1.e and s1.name = 'A' and
+       r2.e = s2.e and s2.name = 'B' and
+       r1.e = r2.e and (r1.bt <= r2.et and r1.et >= r2.bt) and       
+       eq.e = r1.e and
+       /*out of bound*/
+       (r1.mv - s1.ev) + abs(r2.mv - s2.ev)> 311
+===>
+ select eq.name, greater(r1.bt, r2.bt),       
+                 lesser(r1.et, r2.et) 
+ from measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where r1.e = s1.e and s1.name = 'A' and
+       r2.e = s2.e and s2.name = 'B' and
+       r1.e = r2.e and (r1.bt <= r2.et and r1.et >= r2.bt) and       
+       eq.e = r1.e and
+       /*out of bound*/
+       (r2.mv > s2.ev + 311 - (r1.mv - s1.ev) OR
+       r2.mv < s2.ev - 311 - (r1.mv - s1.ev))
+-----------------------------------------------------------------------------------------
+/*Query 10.When and on what equipments were the average of the (relative) deviations of sensor A, B,
+ and C larger than a threshold?
+*/
+/*
+.	When and on what equipments were the average of the (relative) deviations of sensor A, B, and C larger than a threshold?
+*/
+select eq.name, greater(r1.bt, r2.bt),       
+                lesser(r1.et, r2.et) 
+ from measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where r1.e = s1.e and s1.name = 'A' and
+       r2.e = s2.e and s2.name = 'B' and
+       r1.e = r2.e and (r1.bt <= r2.et and r1.et >= r2.bt) and       
+       eq.e = r1.e and
+       /*out of bound*/
+       ((r1.mv - s1.ev) + abs(r2.mv - s2.ev)) / 2 > 155.5
+===>
+ select eq.name, greater(r1.bt, r2.bt),       
+                 lesser(r1.et, r2.et) 
+ from measuredValueA r1, measuredValueB r2, sensor s1 , sensor s2,equipment eq 
+ where r1.e = s1.e and s1.name = 'A' and
+       r2.e = s2.e and s2.name = 'B' and
+       r1.e = r2.e and (r1.bt <= r2.et and r1.et >= r2.bt) and       
+       eq.e = r1.e and
+       /*out of bound*/
+       (r2.mv > s2.ev + 155.5*2 - (r1.mv - s1.ev) 
+       OR r2.mv < s2.ev - 155.5*2 - (r1.mv - s1.ev))
+
+
+Given the range @range_start and @range_end, 
+a) find all interevals which overlap with it
+
+SELECT begintime, endtime
+FROM Table
+WHERE @range_start < endtime AND @range_end > begintime
+
+b) find the intersection 
+
+SELECT greater(@range_start, start), LEAST(@range_end, stop) 
+FROM Table
+WHERE @range_start < endtime AND @range_end > begintime
+
+c) for how long 
+SELECT SUM(LESSER(@range_end, stop) - greater(@range_start, start))
+FROM Table
+WHERE @range_start < endtime AND @range_end > begintime
+
+
+SQL Server does not support GRATER / LESSER as Orcale, MySQL, and
+other DB vendors. Therefore, we suggest to use CASE
+
+Replace greater by SELECT CASE WHEN @range_start>start THEN @range_start ELSE start END
+
+Replace LEAST by SELECT CASE WHEN @range_end<stop THEN @range_end ELSE stop END
+
+
+
+///////////////////////////////////////////////////////////////////////////////////
+Read pages 145 to 154 of SQL for Smarties : Advanced SQL Programming
+
+We implemented GREATER & LESSER 
+

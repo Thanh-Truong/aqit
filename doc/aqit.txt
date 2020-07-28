@@ -1,0 +1,201 @@
+Some brief information about AQIT code organization
+
+-------------------------------------------------------------------------------
+A)Folders + Files
+-------------------------------------------------------------------------------
+A.1)
+Folder structure
+AmosNT\aqit
+	   \lsp			<--- all Lisp code	
+	   \experiment		<--- experiment code
+	   \doc			<--- documentation
+
+A.2)
+Files
++aqit_utilities.lsp
++ud-index-cc.lsp
++rewrite-matrix.lsp
++late-tr-rewrite.lsp
++aqit.lsp
++dist-based-index-rewrite.lsp
++rewrite-index-phases.lsp
+
+-------------------------------------------------------------------------------
+B) How AQIT is included in Query Optimizer ( Amos II) ?
+-------------------------------------------------------------------------------
+
+There is a new TR rewriter which has been introducted to Query Optimizer.
+
+
+B.1) Late-TR Rewriter
+
+
+If the a predicate P in conjuncts C has FNO as generic function and (TESTFN P C) 
+returns non-NIL value V
+then call (ACTIONFN P C V) to return transformed conjuncts.
+
+Late TR rewrite rule are very similar to TR rewrite but is applied after 
+- all views are expaned
+- all equal variables are substituted
+- all TR rewrites are applied
+
+
+
+B.2) Introduce Late-TR Rewriter to Query Optimizer
+
+In function "unify-key-preds" in rewrite.lsp, until the substitution and infering 
+equalilities reaches to a fix point, we apply Late-TR-Rewriter if views have expaned
+
+"............................................................................
+     (cond (*after-view-expansion*
+      	     (setq new-predl (call-late-tr-rewriters0 new-predl freevars))))
+...............................................................................
+"
+
+
+B.3) Which predicates Late-TR-Rewriter takes into account ?
+
+at the end of file "aqit.lsp"
+"............................................................................
+(define-late-tr-rewriter 'object.object.>->boolean 'aqit-tester 'aqit-rewriter)
+(define-late-tr-rewriter 'object.object.>=->boolean 'aqit-tester 'aqit-rewriter)
+(define-late-tr-rewriter 'object.object.<->boolean 'aqit-tester 'aqit-rewriter)
+(define-late-tr-rewriter 'object.object.<=->boolean 'aqit-tester 'aqit-rewriter)
+
+............................................................................"
+
+They state that if there is an inequality predicate (<=,<, >, >=), Late-TR-Rewriter
+evaluates function 'aqit-tester. If the tester returns non-nil value, Late-TR-Rewriter
+then invokes 'aqit-rewriter to transform the conjuction having that inequality predicate
+
+-------------------------------------------------------------------------------
+C) AQIT-REWRITER
+-------------------------------------------------------------------------------
+C.1) AQIT transformation 
+(setq transformedconj (aqit-entry pred conj indxpreds))
+
+
+C.2)  Smart ordering list of indexed predicates
+(setq indxpreds (smart-ordering-preds indxpreds transformedconj inoutvars))
+
+
+C.3) Rewrite the conjunction having distance predicate "distpred <= something"
+
+Replace the pattern with a directly access method which is supported by an index
+on that relation.
+
+(rewrite-distance-based-index  transformedconj indxpreds inoutvars)))
+
+-------------------------------------------------------------------------------
+D) AQIT algorithm
+-------------------------------------------------------------------------------
+AQIT centers on aqit-entry
+
+- Find all starting candidates having indexes on.
+
+- Consider either distance predicates or indexed (relation) as starting points
+
+(setq lstartpreds (list-starting-dist-preds conj))
+
+- Sorting starting candidates based on their size / selectivities
+(setq lstartpreds (sort-starting-preds lstartpreds))
+
+
+- For each starting candidate(startpred)
+    indexevar = get variable on its position there is an AQIT supported index
+    startnode = make node (pred = startpred, var = indexedvar)
+    ==>a path has now only the startnode             
+
+    + call ***aqit-groupping to 
+	   - adopt new node to the path
+	   - transform the path if possible	 
+
+    + if aqit-groupping is successful 
+	 re-add starting predicate from the startnode
+     end if
+	      	 
+  End for  
+
+
+-----------
+aqit-groupping
+
+This backtracking function which backtracks if it goes to a dead-end
+(defun aqit-groupping (currnode path conj)
+
+  currnode: current node
+  
+  If currnode has ending predicate (inequality predicate)
+     call aqit-transforming-path path conj
+
+  Else If currnode is a dead-end
+     return nil conj ;; This is a dead end. Go back!!!  
+
+  Else 
+    lnextnodes = find list of possible next nodes (candidate nodes)
+    For each candidate node
+	tmp = (aqit-groupping candnode ;; currnode = candnode
+		       (append path (list candnode)) ;; Adop it into the path
+			       (remove (node-pred candnode) conj)))	
+  
+	If solution
+	    ;;It is a solution, then return the transformed conjunction. stop here
+	   return (list solution conj)
+   	End if 	       
+
+    End for	
+  End if  
+
+-----------
+aqit-transforming-path 
+
+(defun aqit-transforming-path (path bkconj)
+  (let* (ineq-node prevnode  new-ineq-node addedpreds removedpreds solution
+		   (conj bkconj) (startnode (first path))
+		   common-fragment res)
+    (cond (*print-aqit* 
+	   (print "AQUIT transforms the found inequality path")
+	   (pps path)))
+    (while (neq path nil)
+      (setq ineq-node (car (last path))) ;; last node
+      (setq prevnode (second (reverse path))) ;; second last node
+      ;; This property propagates upward
+      (if (eq common-fragment  nil)
+	  (setq common-fragment 
+		(find-list-predicates-using-var (node-var prevnode) conj)))
+
+      ;; Case A - Hit the starting predicate 
+      (cond ((eq startnode prevnode)
+	     (setq res (aqit-stopping-state path conj removedpreds addedpreds)))
+	    ;;end case A
+	    ;; Case B - Monotonic predicate
+	    ((monotonic-pred? (node-pred prevnode))
+	     (setq res (aqit-trans-monotonic-fun
+			path conj removedpreds addedpreds common-fragment)))
+	    ;;end case B
+	    ;; Case C - Non monotonic functions
+	    ((supported-non-monotonic-pred? (node-pred prevnode))
+	      (setq res (aqit-trans-suppored-fun path conj removedpreds addedpreds 
+						 common-fragment)));;end case C
+	    ;; Case D - Do nothing
+	    (t ))
+      (setq solution (nth 0 res))
+      (setq conj (nth 1 res))
+      (setq removedpreds (nth 2 res))
+      (setq addedpreds (nth 3 res))
+      (setq new-ineq-node (nth 4 res))
+
+      ;; Throw out already processed nodes
+      (setq path (remove ineq-node path))
+      (setq path (remove prevnode path))
+      ;; Add new born inequality node to the front
+      (if (neq new-ineq-node nil)
+	  (setq path (append path (list new-ineq-node)))));;end while
+
+    (cond (solution 
+	   (print-cnd *print-aqit* "AQUIT transformation is SUCCESS"))
+	  (t (print-cnd *print-aqit* "AQUIT transformation FAILS")))	     
+    (if *print-aqit* (pps conj))
+    ;; Transformationing ends and return values
+    (cond (solution (list solution conj))
+	  (t  (list nil bkconj)))))

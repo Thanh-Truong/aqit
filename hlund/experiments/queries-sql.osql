@@ -1,0 +1,117 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: queries-sql.osql,v $
+ * $Revision: 1.2 $ $Date: 2013/02/19 06:03:47 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Benchmark queries in SQL
+ *
+ ****************************************************************************
+ * $Log: queries-sql.osql,v $
+ * Revision 1.2  2013/02/19 06:03:47  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2013/01/04 09:14:16  thatr500
+ * Write benchmark queries in either AmosQL or SQL language
+ *
+ *
+ ****************************************************************************/
+< 'importschema.osql';
+
+/*Q1*/
+sql("
+     select r.ts 
+     from Reg407 r,sensor s,equipment eq 
+     where  r.e = s.e and
+            s.name = 'B' and
+            eq.e = r.e and
+           abs(r.mv - s.ev)> 11");
+
+/*Q2*/
+sql(" select eq.name, r2.ts 
+     from reg407 r1, reg408 r2, sensor s1 , sensor s2,equipment eq 
+     where r1.e = s1.e and s1.name = 'A' and
+           r2.e = s2.e and s2.name = 'B' and
+           r1.e = r2.e and r1.ts = r2.ts and
+           eq.e = r1.e and
+           r1.mv - s1.ev > 300 and
+           abs(r2.mv - s2.ev)> 11");
+/*Q3*/
+sql("
+     select eq.name, r2.ts 
+     from reg407 r1, reg408 r2, sensor s1 , sensor s2,equipment eq 
+     where r1.e = s1.e and s1.name = 'A' and
+           r2.e = s2.e and s2.name = 'B' and
+           r1.e = r2.e and r1.ts = r2.ts and       
+           eq.e = r1.e and
+           /*out of bound*/
+          (r1.mv - s1.ev > 300 or
+          abs(r2.mv - s2.ev)> 11)");
+/*Q4*/
+sql("
+     select r.ts 
+     from reg408 r,sensor s,equipment eq 
+     where  r.e = s.e and
+            s.name = 'B' and
+            eq.e = r.e and
+            eq.name = 'E_1' and
+            abs(r.mv-s.ev) > 11");
+/*Q5*/
+sql("
+     select r1.ts 
+     from reg408 r1, sensor s1, equipment eq1,
+          reg408 r2, sensor s2, equipment eq2
+     where /*on equipment E_1*/ 
+          r1.e = s1.e and s1.name = 'B' and 
+          eq1.e = r1.e and eq1.name = 'E_1' and
+          abs(r1.mv-s1.ev)> 11 and
+           
+          r1.ts = r2.ts and  
+	  /*on equipment E_2*/ 
+          r2.e = s2.e and s2.name = 'B' and 
+          eq2.e = r2.e and eq2.name = 'E_2' and
+          abs(r2.mv-s2.ev)> 11");
+/*Q6*/
+sql("
+	select r1.ts
+	from reg408 r1, sensor s1, equipment eq1
+	where r1.e = s1.e and s1.name = 'B' and 
+	      r1.e = eq1.e and eq1.name in ('E_1', 'E_2')  and       
+	      abs(r1.mv - s1.ev) > 11;");
+/*Q7*/
+sql("
+	select eq.name, r2.ts 
+	from reg407 r1, reg408 r2, sensor s1 , sensor s2,equipment eq 
+	where r1.e = s1.e and s1.name = 'A' and
+	      r2.e = s2.e and s2.name = 'B' and
+	      r1.e = r2.e and r1.ts = r2.ts and       
+	      eq.e = r1.e and
+	      /*out of bound*/
+	      (r1.mv - s1.ev) + abs(r2.mv - s2.ev)> 311");
+/*Q8*/
+sql("
+	select eq.name, r2.ts 
+        from reg407 r1, reg408 r2, sensor s1 , sensor s2,equipment eq 
+	where r1.e = s1.e and s1.name = 'A' and
+	      r2.e = s2.e and s2.name = 'B' and
+	      r1.e = r2.e and r1.ts = r2.ts and       
+	      eq.e = r1.e and
+	      /*out of bound*/
+	      ((r1.mv - s1.ev) + abs(r2.mv - s2.ev)) / 2 > 155.5");
+/*Q10*/
+sql("
+	 select eq.name, r2.ts 
+	 from reg407 r1, reg408 r2, sensor s1 , sensor s2,equipment eq 
+	 where r1.e = s1.e and s1.name = 'A' and
+	       r2.e = s2.e and s2.name = 'B' and
+	       /*same equipment*/
+	       r1.e = r2.e               and
+	       /*join equipment*/
+	       eq.e = r1.e              and
+	       /*out of bound*/
+	       r1.mv - s1.ev > 300      and
+	       abs(r2.mv -s2.ev)> 11    and
+	       r1.ts - r2.ts < 5; 	
+");

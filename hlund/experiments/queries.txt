@@ -1,0 +1,15 @@
+/*Sensor(e,s,name,ev,ad,rd)
+Equipment(e,name)
+Measured(e,s,ts,mv)
+The bound below can be either absolute or relative deviations from expected values.
+1.	When and on what equipments was sensor "REG_408" out of bounds?
+2.	When and on what equipments were both sensor "REG_407" and "REG_408" out of bounds?
+3.	When and on what equipments were either "REG_407" or "REG_408" out of bounds?
+4.	When was REG_408 out of bounds on equipment "foo"?
+5.	When was REG_408 out of bounds both on equipment "Foo" and "fie"?
+6.	When was REG_408 out of bounds for the equipments in a list?
+7.	When an on what equipments were the sum of deviations of sensor A and B larger that a threshold?
+8.	When and on what equipments were the average of the (relative) deviations of sensor A, B, and C larger than a threshold?
+9.	When and on what equipments were the standard deviations of the (relative) deviations of sensor A, B, and C larger than a threshold?
+10.	When and on what equipments did sensor A and sensor B fail within 5 seconds of each other?
+*/

@@ -1,0 +1,71 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2011 Thanh Truong, UDBL
+ * $RCSfile: mapping_schema.amosql,v $
+ * $Revision: 1.2 $ $Date: 2012/03/22 08:27:15 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Use Amos as mediator to transform error detection queries
+ *  before send them to SQL Server in backend.
+ *
+ ****************************************************************************
+ * $Log: mapping_schema.amosql,v $
+ * Revision 1.2  2012/03/22 08:27:15  thatr500
+ * *** empty log message ***
+ *
+ * Revision 1.1  2012/03/12 08:52:12  thatr500
+ * Mapping schema from SQLServer tables to Amos II
+ *
+ ****************************************************************************/
+
+/*-------------------------------------------------------------------
+ * Wrapping data source 
+ * 1. Create new JDBC datasource object :a for remote SQL Server
+ * 2. Connect this object to JDBC data source. 				
+ * 3. Load JDBC driver + connect to datasource.			
+ *-------------------------------------------------------------------*/
+create function AQITDS()->jdbc;
+
+set :dburl = "jdbc:microsoft:sqlserver://localhost;DatabaseName=aqit";
+
+set AQITDS()= jdbc("AQIT", "com.microsoft.jdbc.sqlserver.SQLServerDriver");
+
+connect(AQITDS(),:dburl, "aqit", "aqit");
+
+/*Get relation*/
+set :r = relational_named("AQIT");
+
+set :exptable = "ExpData";
+set :logtable = "LogData";
+
+/*Verify if relation exists */
+has_table(:r, :exptable); 
+has_table(:r, :logtable); 
+
+/* *-------------------------------------------------------------------
+ * Make the table queryable with SQL query
+ * 1. Make an object-oriented view of the table
+ * 2. Wrap that view (core cluster function) with a (#) function
+ * 3. Declare that table has a B-tree. JDBC should be able to do this
+ *    instead. 
+ *-------------------------------------------------------------------*/
+set :mexp = import_table(:r, :exptable); /*mapped type for ExpData*/
+
+set :mlog = import_table(:r, :logtable); /*mapped type for Log*/
+
+create function sql:expdata()-><Real time, Real powcon> as 
+ expdata_aqit_cc();
+
+create function sql:logdata()-><Real cycle, Real time, Real powcon> as 
+ logdata_aqit_cc();
+
+/*Add description about indexes on remote tables through cc function*/
+/*add_descr_index_cc('B-tree', #'EXPDATA_AQIT_CC->REAL.REAL', 1);*/
+add_descr_index_cc('B-tree', #'LOGdata_AQIT_CC->REAL.REAL.REAL', 2);
+
+/*It is cheaper to scan EXPDATA_AQIT_CC first in any case
+costhint("EXPDATA_AQIT_CC->real.real","ff",{1000, 2000}); 
+costhint("LOGDATA_AQIT_CC->real.real","ff",{0.010, 0.0011}); 
+
+*/

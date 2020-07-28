@@ -1,0 +1,63 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2012 Thanh Truong, UDBL
+ * $RCSfile: sigstreamgen3.osql,v $
+ * $Revision: 1.1 $ $Date: 2012/06/19 07:20:40 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: Time sequence generator(2)
+ *
+ ****************************************************************************
+ * $Log: sigstreamgen3.osql,v $
+ * Revision 1.1  2012/06/19 07:20:40  thatr500
+ * stream generated data directly to back-end DBMS
+ *
+ *
+ ****************************************************************************/
+<'sigstreamgen2.osql';
+
+cd("../experiments");
+
+<'connection.osql';
+
+cd("../simulator");
+
+
+create function toSQL_statement(Vector v)-> Charstring
+as "insert into logdata(time, machine, powcon) values(" + toCSV(v) + ");";
+
+
+create function toSQL_statement(Charstring prefix, Vector v,Charstring suffix)-> Charstring
+as prefix + toCSV(v) + suffix;
+
+
+/*stream to DB
+count(sql(aqit_jdbc(), toSQL_statement("insert into logdata(time, machine, powcon) values(", in(:v), ");")));
+
+sql(aqit_jdbc(), toSQL_statement(in(:v)));
+*/
+
+
+
+set :size = 60000000;
+set :v = ( select {timeval(2000, 1, 1, 0, 0, 0) + t, /*Time*/
+                   mod(t, 100),                  /*Machine ID*/
+                   roundto(Ft, 2)                           /*Power Consumption*/ 
+                  } 
+               from Number t, Number Ft, Bag of Vector of Number b
+               where {t, Ft} in b and 
+                     b =  tstream(vectorof(bellcycle(60))
+                           ,floor(:size / 60)    /* # of cycles*/
+                           ,0.2   /* % events go beyond a thresold*/
+                           ,0.05  /* cycle fluctuation*/
+                           ,1     /* Peak size*/
+                           ,10    /* peak duration*/ 
+                           ,1.5));
+
+set :prefix = "insert into logdata(time, machine, powcon) values(";
+set :suffix = ");";
+
+count(sql(aqit_jdbc(), toSQL_statement(:prefix, in(:v), :suffix)));
+
+

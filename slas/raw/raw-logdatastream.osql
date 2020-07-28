@@ -1,0 +1,54 @@
+/*-*-sql-*-*******************************************************************
+ * AMOS2
+ *
+ * Author: (c) 2013 Thanh Truong, UDBL
+ * $RCSfile: AMOSQL,v $
+ * $Revision: 1.1 $ $Date: 2006/02/12 20:01:08 $
+ * $State: Exp $ $Locker:  $
+ *
+ * Description: SLAS-RAW API
+ *
+ ****************************************************************************
+ * $Log: AMOSQL,v $
+ *
+ ****************************************************************************/
+/*------------------------------------------
+API
+--------------------------------------------*/
+create function define_loggedstream(Stream s, 
+       Charstring _mappedRelation,
+       Vector of Charstring _columnNames,
+       Vector of Number _indexedpos, 
+       Number     _baseWindowSize)-> LogDataStream lds
+as begin
+   create LogDataStream (generator, mappedRelation, 
+			columnNames, cols, indexedPos, baseWindowSize, numChunks) 
+   	  instances lds (s,_mappedRelation, _columnNames,  dim(_columnNames),
+                         _indexedPos, _baseWindowSize, 0);
+   /*core cluster*/
+   raw_generatecorecluster(_columnNames, _mappedRelation, lds);
+   /*mapped type*/
+   raw_generatemappedRelation(_columnNames, _mappedRelation);
+   /*sql proxy*/
+   raw_generateSQLProxy(_columnNames, _mappedRelation);
+   /*By default, raw fullscan on single file: No chunks*/
+   raw_generateFullScanNoChunks(raw_generateColumns(_columnNames, dim(_columnNames), " ", FALSE),
+   			    _mappedRelation, cols(lds));
+   /*generate row to columns AmosQL function definition*/
+   raw_generateRowToColumns(_columnNames, _mappedRelation, lds);
+   /*generate its implementation in LISP*/
+   raw_generateImplRowToColumns(lds);
+
+   return lds;
+end;
+
+create function form_streamOfWindows(LogDataStream lds)->Stream of Window
+as streamof(twindowize0(generator(lds), #'logts', baseWindowSize(lds), 
+   						  baseWindowSize(lds),
+						  -1, #'falsefn', #'truefn'));
+
+create function run_loggedstream(LogDataStream lds)->Number
+as  count(write_window_blogfile(form_streamOfWindows(lds), /*stream of windows*/
+       indexedpos(lds) [0], 			     /*indexed position*/
+       cols(lds),      				     /*total columns*/
+       pwd() + "/" + mappedRelation(lds) + ".bin"));
